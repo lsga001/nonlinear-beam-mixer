@@ -1,12 +1,13 @@
 ### A Pluto.jl notebook ###
-# v0.20.24
+# v0.20.20
 
 using Markdown
 using InteractiveUtils
 
 # ╔═╡ d02c1740-35bb-11f0-0ec5-c7b9a0f7777c
 begin
-    #import Pkg
+
+    import Pkg
     # careful: this is _not_ a reproducible environment
     # activate the global environment
   #  Pkg.activate()
@@ -23,8 +24,10 @@ begin
 	using Random
 	using Bessels
 	using Optim
+	#using StructuredLightFunctions
 	using HypergeometricFunctions
 	using FFTW
+	#using FourierOptics
 end
 
 # ╔═╡ a64a74e9-d5eb-478f-803a-61c94c14fbc6
@@ -39,6 +42,8 @@ The efficient creation and detection of spatial modes of light has become topica
 
 """
 
+<<<<<<< HEAD
+=======
 # ╔═╡ 3d760cfc-11f6-4ad0-9dc8-4a7dddfd5d2e
 # ╠═╡ disabled = true
 #=╠═╡
@@ -77,6 +82,7 @@ begin
 end
   ╠═╡ =#
 
+>>>>>>> 2ffa879 (Better figures.)
 # ╔═╡ a1e1ea41-4f55-411b-ab9b-3a575d039440
 # ╠═╡ disabled = true
 #=╠═╡
@@ -93,6 +99,8 @@ begin
 end
   ╠═╡ =#
 
+<<<<<<< HEAD
+=======
 # ╔═╡ f383d81b-9810-4059-ae85-5e2b5f508d19
 # ╠═╡ disabled = true
 #=╠═╡
@@ -153,6 +161,7 @@ begin
 end
   ╠═╡ =#
 
+>>>>>>> 2ffa879 (Better figures.)
 # ╔═╡ 4227a905-cb4e-40da-8b15-df73c9184480
 function filtering()
 end
@@ -160,6 +169,11 @@ end
 # ╔═╡ c22c4017-12d4-4b29-8b27-443c40de5fb8
 md"""
 ### General auxiliary code
+"""
+
+# ╔═╡ ef860f8e-40d5-41a0-a0c3-a9f453265568
+md"""
+#### Packages
 """
 
 # ╔═╡ 9284076b-5020-4f14-bd2e-164562ec5cf1
@@ -180,11 +194,6 @@ begin
 		power 			# W
 	end;
 end
-
-# ╔═╡ ef860f8e-40d5-41a0-a0c3-a9f453265568
-md"""
-#### Packages
-"""
 
 # ╔═╡ 4056458d-c27d-4829-8518-50badc8b412e
 md"""
@@ -307,7 +316,7 @@ begin
 	#yv = 3*source_width*range(-1,1,length=N);
 	xv = 200e-6*range(-1,1,length=N);
 	yv = 200e-6*range(-1,1,length=N);
-	zc = -0e-2;
+	zc = 0e-3;
 	
 	# Parameters
 	λ₁ = 1565e-9;
@@ -315,12 +324,14 @@ begin
 	λ₃ = (λ₁^-1 + λ₂^-1)^-1;
 	input_wavelength_pair = [λ₁, λ₂];
 	source_width = 30e-6;
-	beam_waist = 50e-6;
+	gaussian_beam_waist = 40e-6;
 	P = 50e-3; # Beam power [W]
-
-	#p₁ = 0; l₁ = 1; p₂ = 4; l₂ = 1;
-
-	p₁ = 1; l₁ = 0; p₂ = 1; l₂ = 0;
+	
+<<<<<<< HEAD
+	p₁ = 0; l₁ = 1; p₂ = 4; l₂ = 1;
+=======
+	p₁ = 2; l₁ = 5; p₂ = 2; l₂ = 5;
+>>>>>>> 2ffa879 (Better figures.)
 
 	# lenses
 	f₁ = 750e-3;
@@ -334,10 +345,9 @@ begin
 	crystal = Crystal(PPKTP_d_eff, PPKTP_n_refraction, PPKTP_length);
 
 	# Ensemble behavior
-	num_instances = 1000;
+	num_instances = 100;
 	distribution_type = "circular";
-	#source_type = "gaussian";
-	source_type = "spherical";
+	source_type = "gaussian";
 end;
 
 # ╔═╡ 1fd147f1-a50f-4ecc-b50a-5250140c2466
@@ -365,8 +375,8 @@ function circular_distribution(source_width, num_instances)
 	x₂ = r₂ .* cos.(θ₂);
 	y₂ = r₂ .* sin.(θ₂);
 	
-	x₂ = -x₁;
-	y₂ = -y₁;
+	#x₂ = -x₁;
+	#y₂ = -y₁;
 
 	return x₁, y₁, x₂, y₂
 end
@@ -381,8 +391,8 @@ function gaussian_distribution(source_width, num_instances)
 	x₂ = source_width*randn(num_instances);
 	y₁ = source_width*randn(num_instances);
 
-	x₂ = -x₁;
-	y₂ = -y₁;
+	#x₂ = -x₁;
+	#y₂ = -y₁;
 	
 	return x₁, y₁, x₂, y₂
 end
@@ -402,19 +412,14 @@ begin
 	if num_instances == 1
 		xₒ₁ = 0; xₒ₂ = 0; yₒ₁ = 0; yₒ₂ = 0;
 	end
-	#xₒ₁ = 0*xₒ₁;
-	#yₒ₁ = 0*yₒ₁;
-	#xₒ₂ = 0*xₒ₂;
-	#yₒ₂ = 0*yₒ₂;
 end;
 
 # ╔═╡ 8d29d11c-736b-4692-9774-757793a497e3
-function spherical_beam(x, y, s, origin, k)
+function spherical_beam(x, y, z, origin, k)
 	x0, y0, z0 = origin;
-	z = s-z0;
 	#r = norm([x-x0, y-y0, z-z0]);
 	#return exp(-im*k*r)/r
-	return exp(-im*k*z)*exp(-im*k*((x-x0)^2 + (y-y0)^2)/(2*z))/z;
+	return exp(-im*k*(z-z0))*exp(-im*k*((x-x0)^2 + (y-y0)^2)/(2*(z-z0)))/(z-z0);
 end
 
 # ╔═╡ 3e796c28-4fe6-4cf2-aa43-c522d9de8521
@@ -514,16 +519,14 @@ function beam_generation(xv, yv, z, position_pair, input_wavelength_pair; source
 	k₁ = 2*π/U₁_wavelength;
 	k₂ = 2*π/U₂_wavelength;
 	
-	#local U₁_amplitude = beam_fun.(xv, yv', z, Ref(U₁_origin), k₁);
-	#local U₂_amplitude = beam_fun.(xv, yv', z, Ref(U₂_origin), k₂);
+	#U₁_amplitude = beam_fun.(xv, yv', z, Ref(U₁_origin), k₁);
+	#U₂_amplitude = beam_fun.(xv, yv', z, Ref(U₂_origin), k₂);
 
 	x10, y10, z10 = U₁_origin;
 	x20, y20, z20 = U₂_origin;
-
-
-	#TODO: IMPORTANT (change it so that they are first spherical beams, and then they get transformed into gaussian beams through an optical element. They should not start as the final beams.)
-	local U₁_amplitude = LG_beam.(xv .- x10, yv' .- y10, z .- z10, beam_waist, p₁, l₁; lambda=U₁_wavelength);
-	local U₂_amplitude = conj.(LG_beam.(-(xv .- x20), -(yv' .- y20), z .- z20, beam_waist, p₂, l₂; lambda=U₂_wavelength));
+	
+	local U₁_amplitude = LG_beam.(xv .- x10, yv' .- y10, z .- z10, gaussian_beam_waist, p₁, l₁; lambda=U₁_wavelength);
+	local U₂_amplitude = conj.(LG_beam.(xv .- x20, yv' .- y20, z .- z20, gaussian_beam_waist, p₂, l₂; lambda=U₂_wavelength));
 	
 	U₁ = Beam(U₁_amplitude, U₁_wavelength);
 	U₂ = Beam(U₂_amplitude, U₂_wavelength);
@@ -572,17 +575,10 @@ begin
 
 		m₁ = fourier_lens(u₁,f₁);
 		m₂ = fourier_lens(u₂,f₁);
-
-		# no fourier lens
-		m₁ = u₁;
-		m₂ = u₂;
 		
 		## mixing
 		m₃ = nonlinear_mixing(m₁, m₂, crystal, mode="strong_laser");
 		u₃ = fourier_lens(m₃,f₂);
-
-		# no fourier lens
-		u₃ = m₃;
 	
 		## filtering
 		### does nothing since we don't need to in simulation
@@ -733,22 +729,6 @@ begin
 	fig3
 end
 
-# ╔═╡ 34eb1d1d-429c-40e6-8655-048a255c1ccb
-begin
-	# Makie version
-	fig4, ax4, hm4 = heatmap(scale*xv, scale*yv, abs.(U₃_amplitude),
-		axis = (
-        	xtickformat = "{:.1f}",
-        	ytickformat = "{:.1f}",
-			xlabel = rich(rich("x", font=:italic), " / mm"),
-			ylabel = rich(rich("y", font=:italic), " / mm"),
-    		), colormap=:viridis,
-							 
-	)
-	Colorbar(fig4[:, end+1], hm)
-	fig4
-end
-
 # ╔═╡ eb90edf1-7f1b-40ca-9ee6-aabf2afb7e2c
 md"""
 ### Plotting code
@@ -770,26 +750,29 @@ function plot_beam(intensity, phase, xv, yv, my_title)
 	)
 end
 
-# ╔═╡ 73514956-3d86-11f1-b42e-1f6d8af7b853
+<<<<<<< HEAD
+# ╔═╡ f383d81b-9810-4059-ae85-5e2b5f508d19
 begin
 	plot_beam(IM₁, angle.(M₁.amplitude), xv*f₁*λ₁, yv*f₁*λ₁, L"$\langle\mathcal{F}[U_1]^*\mathcal{F}[U_1]\rangle$ just before crystal")
 end
 
-# ╔═╡ 73514eae-3d86-11f1-9d9c-ebd787db546e
+# ╔═╡ 7445c83d-83bf-45dd-a05a-a97e55dfe9d7
 begin
 	plot_beam(IM₂, angle.(M₂.amplitude), xv*f₁*λ₂, yv*f₁*λ₂, "Input beam 2 just before crystal")
 end
 
-# ╔═╡ 7351502c-3d86-11f1-9e05-f15be1f78740
+# ╔═╡ 1d0b4e4a-ccec-4177-bd94-c5a2064393da
 begin
 	plot_beam(IM₃, angle.(M₃.amplitude), xv*f₂*λ₃, yv*f₂*λ₃, "Output beam just after crystal")
 end
 
-# ╔═╡ 73515124-3d86-11f1-9e12-6f0401d376ad
+# ╔═╡ 5805c0b1-4277-47da-992e-8bc7f47e9191
 begin
 	plot_beam(I₃, angle.(U₃.amplitude), xv, yv, "Output beam at detector")
 end
 
+=======
+>>>>>>> 2ffa879 (Better figures.)
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -802,17 +785,16 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Match = "7eb4fadd-790c-5f42-8a69-bfa0b872bfbf"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 
 [compat]
 Bessels = "~0.2.8"
-CairoMakie = "~0.15.6"
 FFTW = "~1.10.0"
 HypergeometricFunctions = "~0.3.28"
 LaTeXStrings = "~1.4.0"
-Makie = "~0.24.6"
 Match = "~2.4.1"
 Optim = "~1.13.2"
 PlutoUI = "~0.7.73"
@@ -823,9 +805,9 @@ Roots = "~2.2.10"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.6"
+julia_version = "1.12.5"
 manifest_format = "2.0"
-project_hash = "fab5e4af27fe7b6ad52d614663a728ebd630ee1d"
+project_hash = "27e7b1411159bae3998e409fcc8c31b4636acca3"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "27cecae79e5cc9935255f90c53bb831cc3c870d7"
@@ -2647,52 +2629,57 @@ version = "4.1.0+0"
 # ╠═4bde5076-4073-4ee7-b363-915f2194695c
 # ╠═8d6e234b-319d-439d-83b2-52187b498af7
 # ╠═ab474e5c-8821-4515-9c10-934d156e9938
+<<<<<<< HEAD
+=======
 # ╠═66199f62-c4d1-48f4-bfe7-6ec648605957
 # ╠═e9bcd5cc-2cb7-407c-a38a-e283f0793e43
 # ╠═1caad7c1-1088-45f6-b233-e1f42c770d00
 # ╠═e9f93332-47eb-4a4d-95f8-f653b927ae9b
 # ╠═ee2296ca-5d92-45c1-8844-aca1c1789956
-# ╠═34eb1d1d-429c-40e6-8655-048a255c1ccb
-# ╠═3d760cfc-11f6-4ad0-9dc8-4a7dddfd5d2e
-# ╠═3912e570-1ad2-4da7-ad5c-18462387f87a
-# ╠═259123db-63e5-420b-ba0c-34522d579aa9
-# ╠═a1e1ea41-4f55-411b-ab9b-3a575d039440
-# ╠═13ff224b-781d-4452-a29d-c7cc95d78f15
+# ╟─3d760cfc-11f6-4ad0-9dc8-4a7dddfd5d2e
+>>>>>>> 2ffa879 (Better figures.)
+# ╟─3912e570-1ad2-4da7-ad5c-18462387f87a
+# ╟─259123db-63e5-420b-ba0c-34522d579aa9
+# ╟─a1e1ea41-4f55-411b-ab9b-3a575d039440
+# ╟─13ff224b-781d-4452-a29d-c7cc95d78f15
+<<<<<<< HEAD
 # ╠═f383d81b-9810-4059-ae85-5e2b5f508d19
-# ╠═7445c83d-83bf-45dd-a05a-a97e55dfe9d7
-# ╠═1d0b4e4a-ccec-4177-bd94-c5a2064393da
+# ╟─7445c83d-83bf-45dd-a05a-a97e55dfe9d7
+# ╟─1d0b4e4a-ccec-4177-bd94-c5a2064393da
 # ╠═5805c0b1-4277-47da-992e-8bc7f47e9191
-# ╠═140f3e3b-7612-43c2-8a8c-de0061f2588b
-# ╠═2f104f30-54f2-4f96-90f9-2591b08db7d6
-# ╠═4227a905-cb4e-40da-8b15-df73c9184480
-# ╠═c22c4017-12d4-4b29-8b27-443c40de5fb8
-# ╠═9284076b-5020-4f14-bd2e-164562ec5cf1
-# ╠═ef860f8e-40d5-41a0-a0c3-a9f453265568
+=======
+# ╟─f383d81b-9810-4059-ae85-5e2b5f508d19
+# ╟─7445c83d-83bf-45dd-a05a-a97e55dfe9d7
+# ╟─1d0b4e4a-ccec-4177-bd94-c5a2064393da
+# ╟─5805c0b1-4277-47da-992e-8bc7f47e9191
+# ╟─140f3e3b-7612-43c2-8a8c-de0061f2588b
+# ╟─2f104f30-54f2-4f96-90f9-2591b08db7d6
+>>>>>>> 2ffa879 (Better figures.)
+# ╟─4227a905-cb4e-40da-8b15-df73c9184480
+# ╟─c22c4017-12d4-4b29-8b27-443c40de5fb8
+# ╟─ef860f8e-40d5-41a0-a0c3-a9f453265568
 # ╠═d02c1740-35bb-11f0-0ec5-c7b9a0f7777c
-# ╠═4056458d-c27d-4829-8518-50badc8b412e
-# ╠═570fcbf9-5dac-4fbd-bd4a-58ad7aac37ef
-# ╠═d94f8ea0-5dd7-4278-9538-8b2afc53637e
-# ╠═2cea089c-4463-4786-bc2e-83e93a321bfe
-# ╠═e1322a46-caea-4638-a35e-8cb2fe88de1b
-# ╠═bdce42ec-f5a6-4b32-bd41-1c98d0b7f0e3
-# ╠═1fd147f1-a50f-4ecc-b50a-5250140c2466
-# ╠═caf88132-03b0-4e94-9276-a7396f11bfbe
-# ╠═6a2ae328-0c2d-4bd0-aafd-ee3e65c4dbdb
-# ╠═1e077657-a56f-44c6-a51a-494e77353f8c
-# ╠═94e3db3c-4b2e-40c0-858b-49328b82d0ec
-# ╠═8d29d11c-736b-4692-9774-757793a497e3
-# ╠═3e796c28-4fe6-4cf2-aa43-c522d9de8521
-# ╠═a9ac1f1e-a445-4789-82c9-62dfb053c82b
-# ╠═d9cab97b-b7c6-4d65-8c01-b141405fe361
-# ╠═037d0699-c348-4c39-b12d-2e83af878e55
+# ╠═9284076b-5020-4f14-bd2e-164562ec5cf1
+# ╟─4056458d-c27d-4829-8518-50badc8b412e
+# ╟─2cea089c-4463-4786-bc2e-83e93a321bfe
+# ╟─570fcbf9-5dac-4fbd-bd4a-58ad7aac37ef
+# ╟─d94f8ea0-5dd7-4278-9538-8b2afc53637e
+# ╟─e1322a46-caea-4638-a35e-8cb2fe88de1b
+# ╟─bdce42ec-f5a6-4b32-bd41-1c98d0b7f0e3
+# ╟─1fd147f1-a50f-4ecc-b50a-5250140c2466
+# ╟─caf88132-03b0-4e94-9276-a7396f11bfbe
+# ╟─94e3db3c-4b2e-40c0-858b-49328b82d0ec
+# ╟─037d0699-c348-4c39-b12d-2e83af878e55
+# ╟─6a2ae328-0c2d-4bd0-aafd-ee3e65c4dbdb
+# ╟─1e077657-a56f-44c6-a51a-494e77353f8c
+# ╟─8d29d11c-736b-4692-9774-757793a497e3
+# ╟─3e796c28-4fe6-4cf2-aa43-c522d9de8521
+# ╟─a9ac1f1e-a445-4789-82c9-62dfb053c82b
+# ╟─d9cab97b-b7c6-4d65-8c01-b141405fe361
 # ╠═db0bcb3d-1acf-48f9-83a0-9fc23ffa7575
-# ╠═7992697f-25bc-40c8-b336-7ae4e90f3d25
+# ╟─7992697f-25bc-40c8-b336-7ae4e90f3d25
 # ╠═6f671627-5891-4c48-8af9-db29f3ca0476
-# ╠═eb90edf1-7f1b-40ca-9ee6-aabf2afb7e2c
+# ╟─eb90edf1-7f1b-40ca-9ee6-aabf2afb7e2c
 # ╠═887f855f-4d66-4efd-83e6-124e50889af7
-# ╠═73514956-3d86-11f1-b42e-1f6d8af7b853
-# ╠═73514eae-3d86-11f1-9d9c-ebd787db546e
-# ╠═7351502c-3d86-11f1-9e05-f15be1f78740
-# ╠═73515124-3d86-11f1-9e12-6f0401d376ad
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
