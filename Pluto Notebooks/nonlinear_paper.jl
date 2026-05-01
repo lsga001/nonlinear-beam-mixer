@@ -39,120 +39,6 @@ The efficient creation and detection of spatial modes of light has become topica
 
 """
 
-# ╔═╡ 3d760cfc-11f6-4ad0-9dc8-4a7dddfd5d2e
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	heatmap(xv, yv, I₁, 
-			aspect_ratio=:equal, 
-			size=(600,600),
-			axis=([], false),     # Hide axes
-			cbar=false,           # Hide color bar
-			margins=-2mm,          # Hide margins
-			colormap=:viridis
-			)
-end
-  ╠═╡ =#
-
-# ╔═╡ 3912e570-1ad2-4da7-ad5c-18462387f87a
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	heatmap(xv, yv, I₂, aspect_ratio=:equal, size=(600,550), right_margin=15Plots.mm, title=L"$\left\langle U_2^*(\vec{r}) U_2(\vec{r})\right\rangle$ just after SLM")
-	scatter!((xₒ₂, yₒ₂))
-end
-  ╠═╡ =#
-
-# ╔═╡ 259123db-63e5-420b-ba0c-34522d579aa9
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	heatmap(xv, yv, I₂, 
-			aspect_ratio=:equal, 
-			size=(600,600),
-			axis=([], false),     # Hide axes
-			cbar=false,           # Hide color bar
-			margins=-2mm          # Hide margins
-			)
-end
-  ╠═╡ =#
-
-# ╔═╡ a1e1ea41-4f55-411b-ab9b-3a575d039440
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	plot_beam(U₁.amplitude, xv, yv, "Input beam 1 just after SLM")
-end
-  ╠═╡ =#
-
-# ╔═╡ 13ff224b-781d-4452-a29d-c7cc95d78f15
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	plot_beam(U₂.amplitude, xv, yv, "Input beam 2 just after SLM")
-end
-  ╠═╡ =#
-
-# ╔═╡ f383d81b-9810-4059-ae85-5e2b5f508d19
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	plot_beam(IM₁, angle.(M₁.amplitude), xv*f₁*λ₁, yv*f₁*λ₁, "Input beam 1 just before crystal")
-end
-  ╠═╡ =#
-
-# ╔═╡ 7445c83d-83bf-45dd-a05a-a97e55dfe9d7
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	plot_beam(IM₂, angle.(M₂.amplitude), xv*f₁*λ₂, yv*f₁*λ₂, "Input beam 2 just before crystal")
-end
-  ╠═╡ =#
-
-# ╔═╡ 1d0b4e4a-ccec-4177-bd94-c5a2064393da
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	plot_beam(IM₃, angle.(M₃.amplitude), xv*f₂*λ₃, yv*f₂*λ₃, "Output beam just after crystal")
-end
-  ╠═╡ =#
-
-# ╔═╡ 5805c0b1-4277-47da-992e-8bc7f47e9191
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	plot_beam(I₃, angle.(U₃.amplitude), xv, yv, "Output beam at detector")
-end
-  ╠═╡ =#
-
-# ╔═╡ 140f3e3b-7612-43c2-8a8c-de0061f2588b
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	heatmap(xv, yv, I₃, 
-			aspect_ratio=:equal, 
-			size=(600,600),
-			axis=([], false),     # Hide axes
-			cbar=false,           # Hide color bar
-			margins=-2mm          # Hide margins
-			)
-end
-  ╠═╡ =#
-
-# ╔═╡ 2f104f30-54f2-4f96-90f9-2591b08db7d6
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	uv = 200e-6*range(-1,1,length=N);
-	vv = 200e-6*range(-1,1,length=N);
-	c = 299792458;
-	Input = MonoBeam(U₁.amplitude, c/λ₁)
-	input_window = FourierOptics.NumericalWindow(xv, yv);
-	output_window = FourierOptics.NumericalWindow(uv, uv);
-	Propagation.Fourier.bluestein_scalar(U₁, 10, input_window, output_window);
-end
-  ╠═╡ =#
-
 # ╔═╡ 4227a905-cb4e-40da-8b15-df73c9184480
 function filtering()
 end
@@ -749,6 +635,72 @@ begin
 	fig4
 end
 
+# ╔═╡ 3d760cfc-11f6-4ad0-9dc8-4a7dddfd5d2e
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	heatmap(xv, yv, I₁, 
+			aspect_ratio=:equal, 
+			size=(600,600),
+			axis=([], false),     # Hide axes
+			cbar=false,           # Hide color bar
+			margins=-2mm,          # Hide margins
+			colormap=:viridis
+			)
+end
+  ╠═╡ =#
+
+# ╔═╡ 3912e570-1ad2-4da7-ad5c-18462387f87a
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	heatmap(xv, yv, I₂, aspect_ratio=:equal, size=(600,550), right_margin=15Plots.mm, title=L"$\left\langle U_2^*(\vec{r}) U_2(\vec{r})\right\rangle$ just after SLM")
+	scatter!((xₒ₂, yₒ₂))
+end
+  ╠═╡ =#
+
+# ╔═╡ 259123db-63e5-420b-ba0c-34522d579aa9
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	heatmap(xv, yv, I₂, 
+			aspect_ratio=:equal, 
+			size=(600,600),
+			axis=([], false),     # Hide axes
+			cbar=false,           # Hide color bar
+			margins=-2mm          # Hide margins
+			)
+end
+  ╠═╡ =#
+
+# ╔═╡ 140f3e3b-7612-43c2-8a8c-de0061f2588b
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	heatmap(xv, yv, I₃, 
+			aspect_ratio=:equal, 
+			size=(600,600),
+			axis=([], false),     # Hide axes
+			cbar=false,           # Hide color bar
+			margins=-2mm          # Hide margins
+			)
+end
+  ╠═╡ =#
+
+# ╔═╡ 2f104f30-54f2-4f96-90f9-2591b08db7d6
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	uv = 200e-6*range(-1,1,length=N);
+	vv = 200e-6*range(-1,1,length=N);
+	c = 299792458;
+	Input = MonoBeam(U₁.amplitude, c/λ₁)
+	input_window = FourierOptics.NumericalWindow(xv, yv);
+	output_window = FourierOptics.NumericalWindow(uv, uv);
+	Propagation.Fourier.bluestein_scalar(U₁, 10, input_window, output_window);
+end
+  ╠═╡ =#
+
 # ╔═╡ eb90edf1-7f1b-40ca-9ee6-aabf2afb7e2c
 md"""
 ### Plotting code
@@ -769,6 +721,54 @@ function plot_beam(intensity, phase, xv, yv, my_title)
 		plot_titlevspan=0.1
 	)
 end
+
+# ╔═╡ a1e1ea41-4f55-411b-ab9b-3a575d039440
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	plot_beam(U₁.amplitude, xv, yv, "Input beam 1 just after SLM")
+end
+  ╠═╡ =#
+
+# ╔═╡ 13ff224b-781d-4452-a29d-c7cc95d78f15
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	plot_beam(U₂.amplitude, xv, yv, "Input beam 2 just after SLM")
+end
+  ╠═╡ =#
+
+# ╔═╡ f383d81b-9810-4059-ae85-5e2b5f508d19
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	plot_beam(IM₁, angle.(M₁.amplitude), xv*f₁*λ₁, yv*f₁*λ₁, "Input beam 1 just before crystal")
+end
+  ╠═╡ =#
+
+# ╔═╡ 7445c83d-83bf-45dd-a05a-a97e55dfe9d7
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	plot_beam(IM₂, angle.(M₂.amplitude), xv*f₁*λ₂, yv*f₁*λ₂, "Input beam 2 just before crystal")
+end
+  ╠═╡ =#
+
+# ╔═╡ 1d0b4e4a-ccec-4177-bd94-c5a2064393da
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	plot_beam(IM₃, angle.(M₃.amplitude), xv*f₂*λ₃, yv*f₂*λ₃, "Output beam just after crystal")
+end
+  ╠═╡ =#
+
+# ╔═╡ 5805c0b1-4277-47da-992e-8bc7f47e9191
+# ╠═╡ disabled = true
+#=╠═╡
+begin
+	plot_beam(I₃, angle.(U₃.amplitude), xv, yv, "Output beam at detector")
+end
+  ╠═╡ =#
 
 # ╔═╡ 73514956-3d86-11f1-b42e-1f6d8af7b853
 begin

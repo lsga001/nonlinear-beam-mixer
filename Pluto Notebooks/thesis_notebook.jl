@@ -32,9 +32,16 @@ md"""
 ### Beam wander mixer
 """
 
+# ╔═╡ c4b142e0-983d-4c0f-bb48-b6f7f7306621
+md"""
+### Spatial mode detection
+"""
+
 # ╔═╡ 38c42216-600b-4383-ae35-ba107d5b2ea8
 md"""
 ### Disk Schell-model with SLM mixer
+
+Numerical reproduction of the paper "Spatial Correlation Singularity of a Vortex Field" by Palacios et al. (2004).
 """
 
 # ╔═╡ a8ec16ee-52aa-42e5-b41f-d4c5a132151c
@@ -85,21 +92,24 @@ function disk_schell_mixer(
   system3        :: OpticalSystem,
   z 			 :: Float64,
   mixer          :: AbstractMixer;
-  n_realizations :: Int
-) :: Tuple{ScalarField, ScalarField, ScalarField, 
-		   Vector{Tuple{Float64, Float64}}}
+  n_realizations :: Int,
+  is_same_source :: Bool
+) :: Tuple{ScalarField, ScalarField, ScalarField, Vector{Tuple{Float64, Float64}}, Vector{Tuple{Float64, Float64}}}
   @assert n_realizations > 0
-
-
+	
   local λ_in = source.λ
   local λ_out = (λ_in^-1 + λ_in^-1)^-1
 
-  local centers = Vector{Tuple{Float64,Float64}}(undef, n_realizations)
+  local centers1 = Vector{Tuple{Float64,Float64}}(undef, n_realizations)
+  local centers2 = Vector{Tuple{Float64,Float64}}(undef, n_realizations)
 
-  local field, centers[1] = sample(source, grid, z)
+
+  local field1, centers1[1] = sample(source, grid, z)
+  local field2, centers2[1] = (is_same_source) ? (field1, centers1[1]) :
+	  						  sample(source, grid, z)
 	
-  local field1 = system1(field) # Leg A
-  local field2 = system2(field) # Leg B
+  local field1 = system1(field1) # Leg A
+  local field2 = system2(field2) # Leg B
   local mixed = mix(mixer, field1, field2) # Mixer
   local field3 = system3(mixed) # Leg C
   
@@ -107,15 +117,16 @@ function disk_schell_mixer(
   local grid2 = field2.grid
   local grid3 = field3.grid
 
-  local W1 = zeros(ComplexF64, grid1.Ny, grid1.Nx)
-  local W2 = zeros(ComplexF64, grid2.Ny, grid2.Nx)
-  local W3 = zeros(ComplexF64, grid3.Ny, grid3.Nx)
-	
+  local W1 = field1.U
+  local W2 = field2.U
+  local W3 = field3.U
+
   for k in 2:n_realizations
-	field, centers[k] = sample(source, grid, z)
+	field1, centers1[k] = sample(source, grid, z)
+	field2, centers2[k] = (is_same_source) ? (field1, centers1[k]) : sample(source, grid, z)
 	
-    field1 = system1(field) # Leg A
-    field2 = system2(field) # Leg B
+    field1 = system1(field1) # Leg A
+    field2 = system2(field2) # Leg B
     mixed = mix(mixer, field1, field2) # Mixer
     field3 = system3(mixed) # Leg C
 
@@ -128,89 +139,101 @@ function disk_schell_mixer(
   field2 = ScalarField(W2 ./ n_realizations, grid2, λ_in)
   field3 = ScalarField(W3 ./ n_realizations, grid3, λ_out)
 
-  return field1, field2, field3, centers
+  return field1, field2, field3, centers1, centers2
 end
 
-end
-
-# ╔═╡ ffac01b2-cfc5-4342-a52a-6a2e0a4d56e4
-begin
-	scale = 1e-6
-	grid2 = TransverseGrid(scale*range(-200, 200, 256));
-	grid_out = TransverseGrid(scale*range(-200, 200, 256));
-
-	λ2 = 632.8e-9;
-	ℓ = -1;
-	source_radius2 = 30*scale;
-	aperture = 200*scale;
-	z1 = 50e-2;
-	z2 = 2e-2;
-	#z2 = 10e-2;
-	
-	source2 = DiskSchellModel(source_radius2, λ2); 
-
-	legA2 = OpticalSystem([
-		CircularAperture(aperture), 
-		ThinLens(z1), 
-		SpiralPhaseElement(ℓ), 
-		ThinLens(z2), 
-		FreeSpace(z2),
-		#FourierLens(z2),
-	]);
-	legB2 = OpticalSystem([
-		CircularAperture(aperture), 
-		ThinLens(z1), 
-		SpiralPhaseElement(ℓ), 
-		ThinLens(z2), 
-		FreeSpace(z2),
-		#FourierLens(z2),
-		ConjugateInverter(),
-	]);
-	legC2 = OpticalSystem([FreeSpace(z2)]);
-
-	mixer2 = SFGCrystal();
-
-	n_realizations2 = 100;
-
-	field12, field22, field32, points22 = 
-		disk_schell_mixer(
-			grid2, 
-			source2, 
-			legA2, legB2, legC2, z1,
-			mixer2,
-			n_realizations=n_realizations2
-		);
 	
 end
 
-# ╔═╡ 11f8414f-e6ad-4f01-996d-3564a395c287
+# ╔═╡ 7769d4b7-3b39-4abe-858b-4686dee197d2
 begin
-	fig12 = Figure();
-	ax12 = Axis(fig12[1, 1], aspect = DataAspect())
-	hm12 = fieldplot!(field12, plottype=:abs, colormap=:viridis, units=:μm);
-	local points = Point2f.(first.(points22), last.(points22))
-	scatter!(ax12, 1e6 * points);
-	Colorbar(fig12[1,2], hm12);
+	"""
+    disk_schell_mixer_mt(grid, source, system1, system2, system3, mixer;
+                      n_realizations=500) -> Matrix{ComplexF64}
 
-	fig12
+Monte Carlo simulation of a two-arm nonlinear mixing experiment using a single DiskSchellModel source through instantiation of spherical beams originating from random centers within the disk.
+
+The source is sampled once per realization and the resulting field is
+shared between both arms as input — physically corresponding to a beam splitter.
+Each arm then propagates through its respective optical system before
+being mixed in the nonlinear crystal.
+
+For example, with `system2` containing a `ConjugateInverter` and an
+`SFGCrystal` as mixer, the output is the cross correlation function:
+
+```math
+\\langle\\chi\\rangle = \\langle U(\\mathbf{r}) U^*(-\\mathbf{r}) \\rangle
+```
+
+# Arguments
+- `grid`          : sampling grid at the source plane
+- `source`        : disk schell source
+- `radius`        : disk source radius
+- `system1`       : optical system for arm 1
+- `system2`       : optical system for arm 2
+- `system3`       : optical system for arm 3
+- `mixer`         : nonlinear mixing element (e.g. `SFGCrystal`)
+- `n_realizations`: number of Monte Carlo realizations
+"""
+function disk_schell_mixer_mt(
+  grid           :: TransverseGrid{<:Real},
+  source         :: AbstractEnsembleSource,
+  system1        :: OpticalSystem,
+  system2        :: OpticalSystem,
+  system3        :: OpticalSystem,
+  z 			 :: Float64,
+  mixer          :: AbstractMixer;
+  n_realizations :: Int,
+  is_same_source :: Bool
+) :: Tuple{ScalarField, ScalarField, ScalarField, Vector{Tuple{Float64, Float64}}, Vector{Tuple{Float64, Float64}}}
+  @assert n_realizations > 0
+	
+  local λ_in = source.λ
+  local λ_out = (λ_in^-1 + λ_in^-1)^-1
+
+  local centers1 = Vector{Tuple{Float64,Float64}}(undef, n_realizations)
+  local centers2 = Vector{Tuple{Float64,Float64}}(undef, n_realizations)
+
+
+  local field1, centers1[1] = sample(source, grid, z)
+  local field2, centers2[1] = (is_same_source) ? (field1, centers1[1]) :
+	  						  sample(source, grid, z)
+	
+  local field1 = system1(field1) # Leg A
+  local field2 = system2(field2) # Leg B
+  local mixed = mix(mixer, field1, field2) # Mixer
+  local field3 = system3(mixed) # Leg C
+  
+  local grid1 = field1.grid
+  local grid2 = field2.grid
+  local grid3 = field3.grid
+
+  local W1 = field1.U
+  local W2 = field2.U
+  local W3 = field3.U
+
+  for k in 2:n_realizations
+	field1, centers1[k] = sample(source, grid, z)
+	field2, centers2[k] = (is_same_source) ? (field1, centers1[k]) : sample(source, grid, z)
+	
+    field1 = system1(field1) # Leg A
+    field2 = system2(field2) # Leg B
+    mixed = mix(mixer, field1, field2) # Mixer
+    field3 = system3(mixed) # Leg C
+
+    W1 += field1.U
+    W2 += field2.U
+    W3 += field3.U # We are not taking the real part!!
+  end
+
+  field1 = ScalarField(W1 ./ n_realizations, grid1, λ_in)
+  field2 = ScalarField(W2 ./ n_realizations, grid2, λ_in)
+  field3 = ScalarField(W3 ./ n_realizations, grid3, λ_out)
+
+  return field1, field2, field3, centers1, centers2
 end
 
-# ╔═╡ eb9f3385-db09-4e77-9216-83641b65657d
-begin
-	fig32 = Figure();
-	ax32 = Axis(fig32[1, 1], aspect = DataAspect())
-	hm32 = fieldplot!(field32, plottype=:abs, colormap=:viridis, units=:μm);
-	Colorbar(fig32[1,2], hm32);
-	fig32
-end
-
-# ╔═╡ c60b1abd-490c-4853-b149-045845b0bc74
-begin
-	fig42 = Figure();
-	ax42 = Axis(fig42[1, 1], aspect = DataAspect())
-	hm42 = phaseplot!(field32, units=:μm)
-	Colorbar(fig42[1,2], hm42);
-	fig42
+	
 end
 
 # ╔═╡ e7bf0e8c-3843-4eb9-8d85-817ba2c300bc
@@ -342,8 +365,8 @@ end
 
 # ╔═╡ 2cb1d055-0c26-48ff-9a04-0da1536acde3
 begin
-	is_same_source = true;
-	grid = TransverseGrid(range(-200e-6, 200e-6, 256));
+	is_same_source1 = true;
+	grid1 = TransverseGrid(range(-200e-6, 200e-6, 256));
 	
 	λ = 632.8e-9;
 	w0 = 50e-6;
@@ -351,16 +374,12 @@ begin
 
 	f = 10e-2;
 
-	beam1 = LGBeam(w0, λ, 1, 1);
-	beam2 = LGBeam(w0, λ, 1, 0);
+	beam1 = LGBeam(w0, λ, 0, 1);
+	beam2 = LGBeam(w0, λ, 0, 1);
 
-	#legA = OpticalSystem([]);
-	#legB = OpticalSystem([ConjugateInverter()]);
-	#legC = OpticalSystem([]);
-
-	legA = OpticalSystem([FourierLens(f)]);
-	legB = OpticalSystem([ConjugateInverter(), FourierLens(f)]);
-	legC = OpticalSystem([FourierLens(f)]);
+	legA = OpticalSystem([]);
+	legB = OpticalSystem([ConjugateInverter()]);
+	legC = OpticalSystem([]);
 
 	mixer = SFGCrystal();
 
@@ -368,60 +387,355 @@ begin
 
 	field1, field2, field3, points1, points2 = 
 		beam_wander_mixer(
-			grid, 
+			grid1, 
 			beam1, beam2, 
 			source_radius, 
 			legA, legB, legC,
 			mixer,
 			n_realizations=n_realizations,
-			is_same_source=is_same_source
+			is_same_source=is_same_source1
 		);
 end
 
 # ╔═╡ 256058b7-ea48-4732-9844-bd3430b0f546
 begin
 	fig1 = Figure();
-	ax1 = Axis(fig1[1, 1], aspect = DataAspect())
-	hm1 = fieldplot!(field1, plottype=:intensity, colormap=:viridis, units=:μm);
+	ax1 = Axis(
+		fig1[1, 1], 
+		aspect = DataAspect(),
+		xtickformat = "{:.1f}",
+        ytickformat = "{:.1f}",
+		xlabel = rich(rich("x", font=:italic), " / mm"),
+		ylabel = rich(rich("y", font=:italic), " / mm"),
+	)
+	hm1 = fieldplot!(field1, plottype=:intensity, colormap=:viridis, units=:mm);
 	local points = Point2f.(first.(points1), last.(points1))
-	#scatter!(ax1, 1e6 * points);
+	scatter!(ax1, 1e3 * points, color=(:orange,0.2), markersize=10, strokewidth=1, strokecolor=(:red,0.2));
 	Colorbar(fig1[1,2], hm1);
 
+	# Circle parameters
+	r = 1e3 * source_radius
+	θ = range(0, 2π, length=300)
+	xc = r * cos.(θ)
+	yc = r * sin.(θ)
+
+	# Dashed circle
+	lines!(ax1, xc, yc,
+    color = :white,
+    linewidth = 2,
+    linestyle = :dash  # <- key part
+	)
+	
 	fig1
 end
 
 # ╔═╡ 6cfae794-9df0-40da-821e-110d6204feeb
 begin
 	fig2 = Figure();
-	ax2 = Axis(fig2[1, 1], aspect = DataAspect())
-	hm2 = fieldplot!(field2, plottype=:intensity, colormap=:viridis, units=:μm);
+	ax2 = Axis(
+		fig2[1, 1], 
+		aspect = DataAspect(),
+		xtickformat = "{:.1f}",
+        ytickformat = "{:.1f}",
+		xlabel = rich(rich("x", font=:italic), " / mm"),
+		ylabel = rich(rich("y", font=:italic), " / mm"),
+	)
+	hm2 = fieldplot!(field2, plottype=:intensity, colormap=:viridis, units=:mm);
 	local points = Point2f.(first.(points2), last.(points2))
-	#scatter!(ax2, 1e6 * points);
+	scatter!(ax2, 1e3 * points, color=(:orange,0.2), markersize=10, strokewidth=1, strokecolor=(:red,0.2));
 	Colorbar(fig2[1,2], hm2);
+
+	# Dashed circle
+	lines!(ax2, xc, yc,
+    color = :white,
+    linewidth = 2,
+    linestyle = :dash  # <- key part
+	)
+	
 	fig2
 end
 
 # ╔═╡ c54e954b-e49e-45a1-b635-8cb5067d8c43
 begin
 	fig3 = Figure();
-	ax3 = Axis(fig3[1, 1], aspect = DataAspect())
-	hm3 = fieldplot!(field3, plottype=:abs, colormap=:viridis, units=:μm);
+	ax3 = Axis(
+		fig3[1, 1], 
+		aspect = DataAspect(),
+		xtickformat = "{:.1f}",
+        ytickformat = "{:.1f}",
+		xlabel = rich(rich("x", font=:italic), " / mm"),
+		ylabel = rich(rich("y", font=:italic), " / mm"),
+	)
+	hm3 = fieldplot!(field3, plottype=:abs, colormap=:viridis, units=:mm);
 	Colorbar(fig3[1,2], hm3);
 	fig3
 end
 
-# ╔═╡ 36971ab9-eba5-4f97-95a6-208ad6d28774
+# ╔═╡ ffac01b2-cfc5-4342-a52a-6a2e0a4d56e4
 begin
-	beam = LGBeam(w0, λ, 0, 1);
-	field = evaluate(grid, beam);
-	fieldplot(field)
+	is_same_source3 = false;
+	
+	grid3 = TransverseGrid(range(-2.5e-3, 2.5e-3, 128));
+
+	λ3 = 800e-9;
+	ℓ = -1;
+	source_radius3 = 0.25e-3; # [0.25, 1.5] mm
+	aperture = 2.5e-3;
+	za = 10*41.5e-2; # Note the extra factor of 10 which differs from the paper
+	zd = 92e-3;
+
+	Lc = 0.64*λ3*za/source_radius;
+	
+	source3 = DiskSchellModel(source_radius3, λ3); 
+
+	legA3 = OpticalSystem([
+		CircularAperture(aperture), 
+		SpiralPhaseElement(ℓ),
+		FreeSpace(zd),
+		FourierLens(125e-3, 125e-3),
+	]);
+	legB3 = OpticalSystem([
+		CircularAperture(aperture), 
+		SpiralPhaseElement(ℓ), 
+		ConjugateInverter(), # Note: Performing inversion at the fourier plane gives the inverse fourier transform
+		FreeSpace(zd),
+		FourierLens(125e-3, 125e-3),
+	]);
+	mixer3 = SFGCrystal();
+	legC3 = OpticalSystem([
+		FourierLens(500e-3, 500e-3)
+	]);
+
+	n_realizations3 = 3000;
+
+	field31, field32, field33, points31, points32 = 
+		disk_schell_mixer(
+			grid3, 
+			source3, 
+			legA3, legB3, legC3, za,
+			mixer3,
+			n_realizations=n_realizations3,
+			is_same_source=is_same_source3
+		);
+
+
+	
+	
 end
 
-# ╔═╡ 4ea7f978-5a73-48c9-94ee-9ce06c71f5e1
+# ╔═╡ 11f8414f-e6ad-4f01-996d-3564a395c287
 begin
-	out = apply(FreeSpace(1e-3), apply(ThinLens(1e-3), field));
-	fieldplot(out)
+	fig31 = Figure();
+	ax31 = Axis(
+		fig31[1, 1], 
+		aspect = DataAspect(),
+		xtickformat = "{:.1f}",
+        ytickformat = "{:.1f}",
+		xlabel = rich(rich("x", font=:italic), " / mm"),
+		ylabel = rich(rich("y", font=:italic), " / mm"),
+	)
+	hm31 = fieldplot!(field31, plottype=:intensity, colormap=:viridis, units=:mm);
+	local points = Point2f.(first.(points31), last.(points31))
+	#scatter!(ax31, 1e3 * points, color=(:orange,0.2), markersize=10, strokewidth=1, strokecolor=(:red,0.2));
+	Colorbar(fig31[1,2], hm31);
+
+	# Circle parameters
+	r3 = 1e3 * source_radius3
+	θ3 = range(0, 2π, length=300)
+	xc3 = r3 * cos.(θ3)
+	yc3 = r3 * sin.(θ3)
+
+	# Dashed circle
+	lines!(ax31, xc3, yc3,
+    color = :white,
+    linewidth = 2,
+    linestyle = :dash  # <- key part
+	)
 	
+	fig31
+end
+
+# ╔═╡ e1494177-7867-4aee-815c-52e1753c1f4c
+begin
+	fig32 = Figure();
+	ax32 = Axis(
+		fig32[1, 1], 
+		aspect = DataAspect(),
+		xtickformat = "{:.1f}",
+        ytickformat = "{:.1f}",
+		xlabel = rich(rich("x", font=:italic), " / mm"),
+		ylabel = rich(rich("y", font=:italic), " / mm"),
+	)
+	hm32 = fieldplot!(field32, plottype=:intensity, colormap=:viridis, units=:mm);
+	local points = Point2f.(first.(points32), last.(points32))
+	scatter!(ax32, 1e3 * points, color=(:orange,0.2), markersize=10, strokewidth=1, strokecolor=(:red,0.2));
+	Colorbar(fig32[1,2], hm32);
+
+	# Dashed circle
+	lines!(ax32, xc3, yc3,
+    color = :white,
+    linewidth = 2,
+    linestyle = :dash  # <- key part
+	)
+	
+	fig32
+end
+
+# ╔═╡ eb9f3385-db09-4e77-9216-83641b65657d
+begin
+	fig33 = Figure();
+	ax33 = Axis(
+		fig33[1, 1], 
+		aspect = DataAspect(),
+		xtickformat = "{:.2f}",
+        ytickformat = "{:.2f}",
+		xlabel = rich(rich("x", font=:italic), " / mm"),
+		ylabel = rich(rich("y", font=:italic), " / mm"),
+	)
+	hm33 = fieldplot!(field33, plottype=:abs, colormap=:viridis, units=:mm);
+	Colorbar(fig33[1,2], hm33);
+	fig33
+end
+
+# ╔═╡ c60b1abd-490c-4853-b149-045845b0bc74
+begin
+	fig34 = Figure();
+	ax34 = Axis(
+		fig34[1, 1], 
+		aspect = DataAspect(),
+		xtickformat = "{:.2f}",
+        ytickformat = "{:.2f}",
+		xlabel = rich(rich("x", font=:italic), " / mm"),
+		ylabel = rich(rich("y", font=:italic), " / mm"),
+	)
+	hm34 = phaseplot!(field33, units=:mm)
+	Colorbar(fig34[1,2], hm34);
+	fig34
+end
+
+# ╔═╡ 43af5aee-72d6-4724-a8a5-22a066645374
+begin 
+	fieldbk, pointsbk = sample(source3, grid3, za)
+	legTEST = OpticalSystem([
+		CircularAperture(aperture),
+		SpiralPhaseElement(ℓ),
+	])
+	#fieldplot(legTEST(fieldbk))
+	figt, axt, hmt = fieldplot(legTEST(fieldbk))
+	Colorbar(figt[1,2], hmt)
+	figt
+
+	
+end
+
+# ╔═╡ 5797c99c-5b7c-46b8-9534-d918332df2cf
+begin
+	mygrid = TransverseGrid(range(-10e-2, 10e-2, 256))
+	beam = LGBeam(1e-2, λ, 0, 0, z0=1e1)
+	field = evaluate(mygrid, beam)
+	fieldplot(field)
+	
+end
+
+# ╔═╡ 07717101-18bc-43dc-8b26-2907a5817d06
+begin
+	fieldaa = apply(CircularAperture(0.9e-2), field)
+	fieldab = apply(ThinLens(5000e-2, 3e-2), fieldaa)
+	fieldac = apply(FreeSpace(4000e-2), fieldab)
+	fieldf = apply(FourierLens(1e-2, 1e-2), field)
+	fieldplot(fieldaa)
+
+	
+end
+
+# ╔═╡ 441d8969-14fa-4a9f-880c-d0cf1c409df5
+begin
+	is_same_source2 = true;
+	grid2 = TransverseGrid(range(-200e-6, 200e-6, 256));
+
+	λ2 = 632.8e-9;
+	w02 = 50e-6;
+	source_radius2 = 30e-6;
+
+	f2 = 10e-2;
+
+	beam21 = LGBeam(w02, λ2, 1, 2);
+	beam22 = LGBeam(w02, λ2, 0, 2);
+
+	legA2 = OpticalSystem([FourierLens(f2,f2)]);
+	legB2 = OpticalSystem([ConjugateInverter(), FourierLens(f2,f2)]);
+	legC2 = OpticalSystem([FourierLens(f2,f2)]);
+
+	mixer2 = SFGCrystal();
+
+	n_realizations2 = 100;
+
+	field21, field22, field23, points21, points22 = 
+		beam_wander_mixer(
+			grid2, 
+			beam21, beam22, 
+			source_radius2, 
+			legA2, legB2, legC2,
+			mixer2,
+			n_realizations=n_realizations2,
+			is_same_source=is_same_source2
+		);
+	
+end
+
+# ╔═╡ 938f8d5b-46d6-4daa-bb5a-75806745863a
+begin
+	fig21 = Figure();
+	ax21 = Axis(
+		fig21[1, 1], 
+		aspect = DataAspect(),
+		xtickformat = "{:.0f}",
+        ytickformat = "{:.0f}",
+		xlabel = rich(rich("x", font=:italic), " / mm"),
+		ylabel = rich(rich("y", font=:italic), " / mm"),
+	)
+	hm21 = fieldplot!(field21, plottype=:intensity, colormap=:viridis, units=:mm);
+	local points = Point2f.(first.(points21), last.(points21))
+	#scatter!(ax1, 1e6 * points);
+	Colorbar(fig21[1,2], hm21);
+
+	fig21
+end
+
+# ╔═╡ ffe96989-1af9-45b0-b6ae-103a08f3c977
+begin
+	fig22 = Figure();
+	ax22 = Axis(
+		fig22[1, 1], 
+		aspect = DataAspect(),
+		xtickformat = "{:.0f}",
+        ytickformat = "{:.0f}",
+		xlabel = rich(rich("x", font=:italic), " / mm"),
+		ylabel = rich(rich("y", font=:italic), " / mm"),
+	)
+	hm22 = fieldplot!(field22, plottype=:intensity, colormap=:viridis, units=:mm);
+	local points = Point2f.(first.(points22), last.(points22))
+	#scatter!(ax1, 1e6 * points);
+	Colorbar(fig22[1,2], hm22);
+
+	fig22
+end
+
+# ╔═╡ 3ba9fb94-06a6-4b9d-b745-1eb6310252bf
+begin
+	fig23 = Figure();
+	ax23 = Axis(
+		fig23[1, 1], 
+		aspect = DataAspect(),
+		xtickformat = "{:.2f}",
+        ytickformat = "{:.2f}",
+		xlabel = rich(rich("x", font=:italic), " / mm"),
+		ylabel = rich(rich("y", font=:italic), " / mm"),
+	)
+	hm23 = fieldplot!(field23, plottype=:abs, colormap=:viridis, units=:mm);
+	Colorbar(fig23[1,2], hm23);
+
+	fig23
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -2134,20 +2448,28 @@ version = "4.1.0+0"
 # ╟─1efa7c79-10a4-406a-909e-cc5a980ebdae
 # ╟─558681ef-b223-4b4f-b7b3-e29c300195fb
 # ╠═2cb1d055-0c26-48ff-9a04-0da1536acde3
-# ╠═256058b7-ea48-4732-9844-bd3430b0f546
-# ╠═6cfae794-9df0-40da-821e-110d6204feeb
-# ╠═c54e954b-e49e-45a1-b635-8cb5067d8c43
+# ╟─256058b7-ea48-4732-9844-bd3430b0f546
+# ╟─6cfae794-9df0-40da-821e-110d6204feeb
+# ╟─c54e954b-e49e-45a1-b635-8cb5067d8c43
+# ╟─c4b142e0-983d-4c0f-bb48-b6f7f7306621
+# ╠═441d8969-14fa-4a9f-880c-d0cf1c409df5
+# ╟─938f8d5b-46d6-4daa-bb5a-75806745863a
+# ╟─ffe96989-1af9-45b0-b6ae-103a08f3c977
+# ╟─3ba9fb94-06a6-4b9d-b745-1eb6310252bf
 # ╟─38c42216-600b-4383-ae35-ba107d5b2ea8
 # ╠═ffac01b2-cfc5-4342-a52a-6a2e0a4d56e4
-# ╠═11f8414f-e6ad-4f01-996d-3564a395c287
-# ╠═eb9f3385-db09-4e77-9216-83641b65657d
-# ╠═c60b1abd-490c-4853-b149-045845b0bc74
+# ╟─11f8414f-e6ad-4f01-996d-3564a395c287
+# ╟─e1494177-7867-4aee-815c-52e1753c1f4c
+# ╟─eb9f3385-db09-4e77-9216-83641b65657d
+# ╟─c60b1abd-490c-4853-b149-045845b0bc74
 # ╟─a8ec16ee-52aa-42e5-b41f-d4c5a132151c
-# ╟─36971ab9-eba5-4f97-95a6-208ad6d28774
-# ╟─4ea7f978-5a73-48c9-94ee-9ce06c71f5e1
+# ╟─43af5aee-72d6-4724-a8a5-22a066645374
+# ╟─5797c99c-5b7c-46b8-9534-d918332df2cf
+# ╟─07717101-18bc-43dc-8b26-2907a5817d06
 # ╟─2cb543c9-a286-438b-8478-9e6d66976865
 # ╟─2b8fa9f3-fdec-43d5-9c45-297020508eae
-# ╠═eeaa0141-19a6-4d7a-a346-8b9a661f86ad
+# ╟─eeaa0141-19a6-4d7a-a346-8b9a661f86ad
+# ╟─7769d4b7-3b39-4abe-858b-4686dee197d2
 # ╟─e7bf0e8c-3843-4eb9-8d85-817ba2c300bc
 # ╟─b5e06f26-9c7b-4529-aeb6-b718dfd346eb
 # ╟─00000000-0000-0000-0000-000000000001
