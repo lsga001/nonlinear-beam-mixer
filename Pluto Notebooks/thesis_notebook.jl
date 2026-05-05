@@ -145,6 +145,77 @@ end
 	
 end
 
+# ╔═╡ ffac01b2-cfc5-4342-a52a-6a2e0a4d56e4
+begin
+	is_same_source3 = true;
+	
+	grid3 = TransverseGrid(range(-4e-3, 4e-3, 256));
+	
+	λ3 = 800e-9;
+	ℓ = -1;
+	source_radius3 = 0.5e-3; # [0.25, 1.5] mm Try 0.25 0.5 0.75
+	aperture = 2.5e-3; # Should be 2.5e-3
+	za = 41.5e-2;
+	zd = 92e-3;
+
+	Lc = 0.64*λ3*za/source_radius3;
+	k = 2π/λ3;
+	ring_size = sqrt(2π) * (zd/(k*Lc));
+	
+	source3 = DiskSchellModel(source_radius3, λ3); 
+
+	legA3 = OpticalSystem([
+		CircularAperture(aperture), 
+		SpiralPhaseElement(ℓ),
+		FreeSpace(zd),
+	]);
+	legB3 = OpticalSystem([
+		CircularAperture(aperture), 
+		SpiralPhaseElement(-ℓ),
+		FreeSpace(zd),	
+		ConjugateInverter(),
+	]);
+	mixer3 = SFGCrystal();
+	legC3 = OpticalSystem([
+	]);
+
+	n_realizations3 = 2000;
+
+	field31, field32, field33, points31, points32 = 
+		disk_schell_mixer(
+			grid3, 
+			source3, 
+			legA3, legB3, legC3, za,
+			mixer3,
+			n_realizations=n_realizations3,
+			is_same_source=is_same_source3
+		);
+
+	
+end
+
+# ╔═╡ b485cacc-1d89-4831-8dcd-2b5e4b7d4f5f
+print("Coherence length: ", Lc/aperture)
+
+# ╔═╡ 231d6155-853d-429d-9622-77ebb58378ee
+print("Ring size: ", ring_size)
+
+# ╔═╡ 43af5aee-72d6-4724-a8a5-22a066645374
+begin 
+	fieldbk, pointsbk = sample(source3, grid3, za)
+	legTEST = OpticalSystem([
+		CircularAperture(aperture),
+		SpiralPhaseElement(ℓ),
+	])
+	#fieldplot(legTEST(fieldbk))
+	figt, axt, hmt = fieldplot(legTEST(fieldbk))
+	Colorbar(figt[1,2], hmt)
+	figt
+
+	
+	
+end
+
 # ╔═╡ 7769d4b7-3b39-4abe-858b-4686dee197d2
 begin
 	"""
@@ -370,261 +441,41 @@ begin
 	
 	λ = 632.8e-9;
 	w0 = 50e-6;
-	source_radius = 30e-6;
+	source_radius1 = 30e-6;
 
 	f = 10e-2;
 
-	beam1 = LGBeam(w0, λ, 0, 1);
-	beam2 = LGBeam(w0, λ, 0, 1);
+	p11 = 0; l11 = 1;
+	p12 = 0; l12 = 1;
+	beamtype1 = "LG";
+	if beamtype1 == "LG"
+		beam1 = LGBeam(w0, λ, p11, l11);
+		beam2 = LGBeam(w0, λ, p12, l12);
+	elseif beamtype1 == "HG"
+		beam1 = HGBeam(w0, λ, p11, l11);
+		beam2 = HGBeam(w0, λ, p12, l12);
+	end
 
 	legA = OpticalSystem([]);
-	legB = OpticalSystem([ConjugateInverter()]);
+	legB = OpticalSystem([
+		ConjugateInverter()
+	]);
 	legC = OpticalSystem([]);
 
 	mixer = SFGCrystal();
 
-	n_realizations = 100;
+	n_realizations1 = 2000;
 
 	field1, field2, field3, points1, points2 = 
 		beam_wander_mixer(
 			grid1, 
 			beam1, beam2, 
-			source_radius, 
+			source_radius1, 
 			legA, legB, legC,
 			mixer,
-			n_realizations=n_realizations,
+			n_realizations=n_realizations1,
 			is_same_source=is_same_source1
 		);
-end
-
-# ╔═╡ 256058b7-ea48-4732-9844-bd3430b0f546
-begin
-	fig1 = Figure();
-	ax1 = Axis(
-		fig1[1, 1], 
-		aspect = DataAspect(),
-		xtickformat = "{:.1f}",
-        ytickformat = "{:.1f}",
-		xlabel = rich(rich("x", font=:italic), " / mm"),
-		ylabel = rich(rich("y", font=:italic), " / mm"),
-	)
-	hm1 = fieldplot!(field1, plottype=:intensity, colormap=:viridis, units=:mm);
-	local points = Point2f.(first.(points1), last.(points1))
-	scatter!(ax1, 1e3 * points, color=(:orange,0.2), markersize=10, strokewidth=1, strokecolor=(:red,0.2));
-	Colorbar(fig1[1,2], hm1);
-
-	# Circle parameters
-	r = 1e3 * source_radius
-	θ = range(0, 2π, length=300)
-	xc = r * cos.(θ)
-	yc = r * sin.(θ)
-
-	# Dashed circle
-	lines!(ax1, xc, yc,
-    color = :white,
-    linewidth = 2,
-    linestyle = :dash  # <- key part
-	)
-	
-	fig1
-end
-
-# ╔═╡ 6cfae794-9df0-40da-821e-110d6204feeb
-begin
-	fig2 = Figure();
-	ax2 = Axis(
-		fig2[1, 1], 
-		aspect = DataAspect(),
-		xtickformat = "{:.1f}",
-        ytickformat = "{:.1f}",
-		xlabel = rich(rich("x", font=:italic), " / mm"),
-		ylabel = rich(rich("y", font=:italic), " / mm"),
-	)
-	hm2 = fieldplot!(field2, plottype=:intensity, colormap=:viridis, units=:mm);
-	local points = Point2f.(first.(points2), last.(points2))
-	scatter!(ax2, 1e3 * points, color=(:orange,0.2), markersize=10, strokewidth=1, strokecolor=(:red,0.2));
-	Colorbar(fig2[1,2], hm2);
-
-	# Dashed circle
-	lines!(ax2, xc, yc,
-    color = :white,
-    linewidth = 2,
-    linestyle = :dash  # <- key part
-	)
-	
-	fig2
-end
-
-# ╔═╡ c54e954b-e49e-45a1-b635-8cb5067d8c43
-begin
-	fig3 = Figure();
-	ax3 = Axis(
-		fig3[1, 1], 
-		aspect = DataAspect(),
-		xtickformat = "{:.1f}",
-        ytickformat = "{:.1f}",
-		xlabel = rich(rich("x", font=:italic), " / mm"),
-		ylabel = rich(rich("y", font=:italic), " / mm"),
-	)
-	hm3 = fieldplot!(field3, plottype=:abs, colormap=:viridis, units=:mm);
-	Colorbar(fig3[1,2], hm3);
-	fig3
-end
-
-# ╔═╡ ffac01b2-cfc5-4342-a52a-6a2e0a4d56e4
-begin
-	is_same_source3 = false;
-	
-	grid3 = TransverseGrid(range(-2.5e-3, 2.5e-3, 128));
-
-	λ3 = 800e-9;
-	ℓ = -1;
-	source_radius3 = 0.25e-3; # [0.25, 1.5] mm
-	aperture = 2.5e-3;
-	za = 10*41.5e-2; # Note the extra factor of 10 which differs from the paper
-	zd = 92e-3;
-
-	Lc = 0.64*λ3*za/source_radius;
-	
-	source3 = DiskSchellModel(source_radius3, λ3); 
-
-	legA3 = OpticalSystem([
-		CircularAperture(aperture), 
-		SpiralPhaseElement(ℓ),
-		FreeSpace(zd),
-		FourierLens(125e-3, 125e-3),
-	]);
-	legB3 = OpticalSystem([
-		CircularAperture(aperture), 
-		SpiralPhaseElement(ℓ), 
-		ConjugateInverter(), # Note: Performing inversion at the fourier plane gives the inverse fourier transform
-		FreeSpace(zd),
-		FourierLens(125e-3, 125e-3),
-	]);
-	mixer3 = SFGCrystal();
-	legC3 = OpticalSystem([
-		FourierLens(500e-3, 500e-3)
-	]);
-
-	n_realizations3 = 3000;
-
-	field31, field32, field33, points31, points32 = 
-		disk_schell_mixer(
-			grid3, 
-			source3, 
-			legA3, legB3, legC3, za,
-			mixer3,
-			n_realizations=n_realizations3,
-			is_same_source=is_same_source3
-		);
-
-
-	
-	
-end
-
-# ╔═╡ 11f8414f-e6ad-4f01-996d-3564a395c287
-begin
-	fig31 = Figure();
-	ax31 = Axis(
-		fig31[1, 1], 
-		aspect = DataAspect(),
-		xtickformat = "{:.1f}",
-        ytickformat = "{:.1f}",
-		xlabel = rich(rich("x", font=:italic), " / mm"),
-		ylabel = rich(rich("y", font=:italic), " / mm"),
-	)
-	hm31 = fieldplot!(field31, plottype=:intensity, colormap=:viridis, units=:mm);
-	local points = Point2f.(first.(points31), last.(points31))
-	#scatter!(ax31, 1e3 * points, color=(:orange,0.2), markersize=10, strokewidth=1, strokecolor=(:red,0.2));
-	Colorbar(fig31[1,2], hm31);
-
-	# Circle parameters
-	r3 = 1e3 * source_radius3
-	θ3 = range(0, 2π, length=300)
-	xc3 = r3 * cos.(θ3)
-	yc3 = r3 * sin.(θ3)
-
-	# Dashed circle
-	lines!(ax31, xc3, yc3,
-    color = :white,
-    linewidth = 2,
-    linestyle = :dash  # <- key part
-	)
-	
-	fig31
-end
-
-# ╔═╡ e1494177-7867-4aee-815c-52e1753c1f4c
-begin
-	fig32 = Figure();
-	ax32 = Axis(
-		fig32[1, 1], 
-		aspect = DataAspect(),
-		xtickformat = "{:.1f}",
-        ytickformat = "{:.1f}",
-		xlabel = rich(rich("x", font=:italic), " / mm"),
-		ylabel = rich(rich("y", font=:italic), " / mm"),
-	)
-	hm32 = fieldplot!(field32, plottype=:intensity, colormap=:viridis, units=:mm);
-	local points = Point2f.(first.(points32), last.(points32))
-	scatter!(ax32, 1e3 * points, color=(:orange,0.2), markersize=10, strokewidth=1, strokecolor=(:red,0.2));
-	Colorbar(fig32[1,2], hm32);
-
-	# Dashed circle
-	lines!(ax32, xc3, yc3,
-    color = :white,
-    linewidth = 2,
-    linestyle = :dash  # <- key part
-	)
-	
-	fig32
-end
-
-# ╔═╡ eb9f3385-db09-4e77-9216-83641b65657d
-begin
-	fig33 = Figure();
-	ax33 = Axis(
-		fig33[1, 1], 
-		aspect = DataAspect(),
-		xtickformat = "{:.2f}",
-        ytickformat = "{:.2f}",
-		xlabel = rich(rich("x", font=:italic), " / mm"),
-		ylabel = rich(rich("y", font=:italic), " / mm"),
-	)
-	hm33 = fieldplot!(field33, plottype=:abs, colormap=:viridis, units=:mm);
-	Colorbar(fig33[1,2], hm33);
-	fig33
-end
-
-# ╔═╡ c60b1abd-490c-4853-b149-045845b0bc74
-begin
-	fig34 = Figure();
-	ax34 = Axis(
-		fig34[1, 1], 
-		aspect = DataAspect(),
-		xtickformat = "{:.2f}",
-        ytickformat = "{:.2f}",
-		xlabel = rich(rich("x", font=:italic), " / mm"),
-		ylabel = rich(rich("y", font=:italic), " / mm"),
-	)
-	hm34 = phaseplot!(field33, units=:mm)
-	Colorbar(fig34[1,2], hm34);
-	fig34
-end
-
-# ╔═╡ 43af5aee-72d6-4724-a8a5-22a066645374
-begin 
-	fieldbk, pointsbk = sample(source3, grid3, za)
-	legTEST = OpticalSystem([
-		CircularAperture(aperture),
-		SpiralPhaseElement(ℓ),
-	])
-	#fieldplot(legTEST(fieldbk))
-	figt, axt, hmt = fieldplot(legTEST(fieldbk))
-	Colorbar(figt[1,2], hmt)
-	figt
-
 	
 end
 
@@ -635,23 +486,24 @@ begin
 	field = evaluate(mygrid, beam)
 	fieldplot(field)
 	
+	
 end
 
 # ╔═╡ 07717101-18bc-43dc-8b26-2907a5817d06
 begin
-	fieldaa = apply(CircularAperture(0.9e-2), field)
-	fieldab = apply(ThinLens(5000e-2, 3e-2), fieldaa)
-	fieldac = apply(FreeSpace(4000e-2), fieldab)
+	fieldaa = apply(CircularAperture(3000e-2), field)
+	fieldab = apply(ThinLens(5000e-2, 4e-2), fieldaa)
+	fieldac = apply(FreeSpace(5000e-2), fieldab)
 	fieldf = apply(FourierLens(1e-2, 1e-2), field)
-	fieldplot(fieldaa)
+	fieldplot(fieldac)
 
 	
 end
 
 # ╔═╡ 441d8969-14fa-4a9f-880c-d0cf1c409df5
 begin
-	is_same_source2 = true;
-	grid2 = TransverseGrid(range(-200e-6, 200e-6, 256));
+	is_same_source2 = false;
+	grid2 = TransverseGrid(range(-400e-6, 400e-6, 256));
 
 	λ2 = 632.8e-9;
 	w02 = 50e-6;
@@ -659,8 +511,16 @@ begin
 
 	f2 = 10e-2;
 
-	beam21 = LGBeam(w02, λ2, 1, 2);
-	beam22 = LGBeam(w02, λ2, 0, 2);
+	p21 = 1; l21 = 1;
+	p22 = 1; l22 = 1;
+	beamtype2 = "LG";
+	if beamtype2 == "LG"
+		beam21 = LGBeam(w02, λ2, p21, l21);
+		beam22 = LGBeam(w02, λ2, p22, l22);
+	elseif beamtype2 == "HG"
+		beam21 = HGBeam(w02, λ2, p21, l21);
+		beam22 = HGBeam(w02, λ2, p22, l22);
+	end
 
 	legA2 = OpticalSystem([FourierLens(f2,f2)]);
 	legB2 = OpticalSystem([ConjugateInverter(), FourierLens(f2,f2)]);
@@ -683,59 +543,230 @@ begin
 	
 end
 
+# ╔═╡ 16f685d3-c245-4473-b5c5-5fef7069ef5d
+function my_fig(field; beam_centers=missing, source_radius=missing, plottype=missing, units=missing, save_path=missing)
+
+	local plot_units = (units !== missing) ? units : :m
+	local scale = 	(plot_units == :mm) ? 1e3 :
+					(plot_units == :μm) ? 1e6 :
+					(plot_units == :nm) ? 1e9 : 1e0
+	local units_str = 	(plot_units == :mm) ? "mm" :
+						(plot_units == :μm) ? "μm" :
+						(plot_units == :nm) ? "nm" : "m"
+	
+	local fig = Figure();
+	local ax = Axis(
+		fig[1, 1], 
+		aspect = DataAspect(),
+		xtickformat = "{:.1f}",
+        ytickformat = "{:.1f}",
+		xlabel = rich(rich("x", font=:italic), " / "*units_str),
+		ylabel = rich(rich("y", font=:italic), " / "*units_str),
+	);
+	
+	local hm = fieldplot!(
+		field, 
+		plottype=plottype, 
+		colormap=:viridis, 
+		units=plot_units
+	);
+	Colorbar(fig[1,2], hm);
+	
+	if (beam_centers !== missing)
+		local scatter_points = Point2f.(first.(beam_centers), last.(beam_centers));
+		scatter!(
+			ax, 
+			scale * scatter_points, 
+			color=(:orange,0.1), 
+			markersize=4, 
+			strokewidth=1, 
+			strokecolor=(:red,0.1));
+	end
+
+	if (source_radius !== missing)
+		# Circle parameters
+		local r = scale * source_radius;
+		local θ = range(0, 2π, length=300);
+		local xc = r * cos.(θ);
+		local yc = r * sin.(θ);
+	
+		# Dashed circle
+		lines!(ax, xc, yc,
+			   color = :white,
+			   linewidth = 1,
+			   linestyle = :dash,
+		);
+	end
+
+	if (save_path !== missing)
+		save(save_path, fig);
+	end
+	
+	fig
+end
+
+# ╔═╡ 6ca2e49b-4ce5-49d8-87be-80c5146929a7
+begin
+	my_fig(
+		field1, 
+		plottype=:intensity, 
+		units=:mm,
+		beam_centers=points1,
+		source_radius=source_radius1,
+		save_path="thesis_notebook_figures/$beamtype1$p11$l11-$beamtype1$p12$l12/beam-wander-1.pdf"
+	)
+end
+
+# ╔═╡ 6cfae794-9df0-40da-821e-110d6204feeb
+begin
+	my_fig(
+		field2, 
+		plottype=:intensity, 
+		units=:mm,
+		#beam_centers=points2,
+		#source_radius=source_radius1,
+		save_path="thesis_notebook_figures/$beamtype1$p11$l11-$beamtype1$p12$l12/beam-wander-2.pdf"
+	)
+end
+
+# ╔═╡ c54e954b-e49e-45a1-b635-8cb5067d8c43
+begin
+	my_fig(
+		field3, 
+		plottype=:abs, 
+		units=:mm,
+		save_path="thesis_notebook_figures/$beamtype1$p11$l11-$beamtype1$p12$l12/beam-wander-3.pdf"
+	)
+end
+
 # ╔═╡ 938f8d5b-46d6-4daa-bb5a-75806745863a
 begin
-	fig21 = Figure();
-	ax21 = Axis(
-		fig21[1, 1], 
-		aspect = DataAspect(),
-		xtickformat = "{:.0f}",
-        ytickformat = "{:.0f}",
-		xlabel = rich(rich("x", font=:italic), " / mm"),
-		ylabel = rich(rich("y", font=:italic), " / mm"),
+	my_fig(
+		field21, 
+		plottype=:intensity, 
+		units=:mm,
+		#beam_centers=points21,
+		#source_radius=source_radius2,
+		save_path="thesis_notebook_figures/$beamtype2$p21$l21-$beamtype2$p22$l22/mode-detection-1.pdf"
 	)
-	hm21 = fieldplot!(field21, plottype=:intensity, colormap=:viridis, units=:mm);
-	local points = Point2f.(first.(points21), last.(points21))
-	#scatter!(ax1, 1e6 * points);
-	Colorbar(fig21[1,2], hm21);
-
-	fig21
 end
 
 # ╔═╡ ffe96989-1af9-45b0-b6ae-103a08f3c977
 begin
-	fig22 = Figure();
-	ax22 = Axis(
-		fig22[1, 1], 
-		aspect = DataAspect(),
-		xtickformat = "{:.0f}",
-        ytickformat = "{:.0f}",
-		xlabel = rich(rich("x", font=:italic), " / mm"),
-		ylabel = rich(rich("y", font=:italic), " / mm"),
+	my_fig(
+		field22, 
+		plottype=:intensity, 
+		units=:mm,
+		#beam_centers=points22,
+		#source_radius=source_radius2,
+		save_path="thesis_notebook_figures/$beamtype2$p21$l21-$beamtype2$p22$l22/mode-detection-2.pdf"
 	)
-	hm22 = fieldplot!(field22, plottype=:intensity, colormap=:viridis, units=:mm);
-	local points = Point2f.(first.(points22), last.(points22))
-	#scatter!(ax1, 1e6 * points);
-	Colorbar(fig22[1,2], hm22);
-
-	fig22
 end
 
 # ╔═╡ 3ba9fb94-06a6-4b9d-b745-1eb6310252bf
 begin
-	fig23 = Figure();
-	ax23 = Axis(
-		fig23[1, 1], 
-		aspect = DataAspect(),
-		xtickformat = "{:.2f}",
-        ytickformat = "{:.2f}",
-		xlabel = rich(rich("x", font=:italic), " / mm"),
-		ylabel = rich(rich("y", font=:italic), " / mm"),
+	my_fig(
+		field23, 
+		plottype=:intensity, 
+		units=:mm,
+		#beam_centers=points22,
+		#source_radius=source_radius,
+		save_path="thesis_notebook_figures/$beamtype2$p21$l21-$beamtype2$p22$l22/mode-detection-3.pdf"
 	)
-	hm23 = fieldplot!(field23, plottype=:abs, colormap=:viridis, units=:mm);
-	Colorbar(fig23[1,2], hm23);
+end
 
-	fig23
+# ╔═╡ 11f8414f-e6ad-4f01-996d-3564a395c287
+begin
+	my_fig(
+		field31, 
+		plottype=:intensity, 
+		units=:mm,
+		beam_centers=points31,
+		source_radius=source_radius3,
+		save_path="thesis_notebook_figures/disk-source-1.pdf"
+	)
+end
+
+# ╔═╡ e1494177-7867-4aee-815c-52e1753c1f4c
+begin
+	my_fig(
+		field32, 
+		plottype=:intensity, 
+		units=:mm,
+		#beam_centers=points32,
+		#source_radius=source_radius3,
+		save_path="thesis_notebook_figures/disk-source-2.pdf"
+	)
+end
+
+# ╔═╡ eb9f3385-db09-4e77-9216-83641b65657d
+begin
+	my_fig(
+		field33, 
+		plottype=:abs, 
+		units=:mm,
+		#source_radius=ring_size, 
+		save_path="thesis_notebook_figures/disk-source-3.pdf"
+	)
+end
+
+# ╔═╡ 5ea3e491-d8f3-4d60-93c3-9d3d509108a0
+function my_phase(field; source_radius=missing, plottype=missing, units=missing, save_path=missing)
+
+	local plot_units = (units !== missing) ? units : :m
+	local scale = 	(plot_units == :mm) ? 1e3 :
+					(plot_units == :μm) ? 1e6 :
+					(plot_units == :nm) ? 1e9 : 1e0
+	local units_str = 	(plot_units == :mm) ? "mm" :
+						(plot_units == :μm) ? "μm" :
+						(plot_units == :nm) ? "nm" : "m"
+	
+	local fig = Figure();
+	local ax = Axis(
+		fig[1, 1], 
+		aspect = DataAspect(),
+		xtickformat = "{:.1f}",
+        ytickformat = "{:.1f}",
+		xlabel = rich(rich("x", font=:italic), " / "*units_str),
+		ylabel = rich(rich("y", font=:italic), " / "*units_str),
+	);
+	
+	local hm = phaseplot!(
+		field, 
+		units=plot_units
+	);
+	Colorbar(fig[1,2], hm);
+
+	if (source_radius !== missing)
+		# Circle parameters
+		local r = scale * source_radius;
+		local θ = range(0, 2π, length=300);
+		local xc = r * cos.(θ);
+		local yc = r * sin.(θ);
+	
+		# Dashed circle
+		lines!(ax, xc, yc,
+			   color = :orange,
+			   linewidth = 1,
+			   linestyle = :dash,
+		);
+	end
+
+	if (save_path !== missing)
+		save(save_path, fig);
+	end
+	
+	fig
+end
+
+# ╔═╡ 9f0f09d3-5171-4d31-a940-0027c91706c2
+begin
+	my_phase(
+		field33, 
+		units=:mm,
+		#source_radius=ring_size, 
+		save_path="thesis_notebook_figures/disk-source-phase.pdf"
+	)
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -2448,7 +2479,7 @@ version = "4.1.0+0"
 # ╟─1efa7c79-10a4-406a-909e-cc5a980ebdae
 # ╟─558681ef-b223-4b4f-b7b3-e29c300195fb
 # ╠═2cb1d055-0c26-48ff-9a04-0da1536acde3
-# ╟─256058b7-ea48-4732-9844-bd3430b0f546
+# ╟─6ca2e49b-4ce5-49d8-87be-80c5146929a7
 # ╟─6cfae794-9df0-40da-821e-110d6204feeb
 # ╟─c54e954b-e49e-45a1-b635-8cb5067d8c43
 # ╟─c4b142e0-983d-4c0f-bb48-b6f7f7306621
@@ -2458,10 +2489,12 @@ version = "4.1.0+0"
 # ╟─3ba9fb94-06a6-4b9d-b745-1eb6310252bf
 # ╟─38c42216-600b-4383-ae35-ba107d5b2ea8
 # ╠═ffac01b2-cfc5-4342-a52a-6a2e0a4d56e4
+# ╠═b485cacc-1d89-4831-8dcd-2b5e4b7d4f5f
+# ╠═231d6155-853d-429d-9622-77ebb58378ee
 # ╟─11f8414f-e6ad-4f01-996d-3564a395c287
 # ╟─e1494177-7867-4aee-815c-52e1753c1f4c
-# ╟─eb9f3385-db09-4e77-9216-83641b65657d
-# ╟─c60b1abd-490c-4853-b149-045845b0bc74
+# ╠═eb9f3385-db09-4e77-9216-83641b65657d
+# ╟─9f0f09d3-5171-4d31-a940-0027c91706c2
 # ╟─a8ec16ee-52aa-42e5-b41f-d4c5a132151c
 # ╟─43af5aee-72d6-4724-a8a5-22a066645374
 # ╟─5797c99c-5b7c-46b8-9534-d918332df2cf
@@ -2472,5 +2505,7 @@ version = "4.1.0+0"
 # ╟─7769d4b7-3b39-4abe-858b-4686dee197d2
 # ╟─e7bf0e8c-3843-4eb9-8d85-817ba2c300bc
 # ╟─b5e06f26-9c7b-4529-aeb6-b718dfd346eb
+# ╟─16f685d3-c245-4473-b5c5-5fef7069ef5d
+# ╟─5ea3e491-d8f3-4d60-93c3-9d3d509108a0
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
