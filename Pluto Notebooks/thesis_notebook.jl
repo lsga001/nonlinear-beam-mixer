@@ -153,7 +153,7 @@ begin
 	
 	λ3 = 800e-9;
 	ℓ = -1;
-	source_radius3 = 0.5e-3; # [0.25, 1.5] mm Try 0.25 0.5 0.75
+	source_radius3 = 0.5e-3; # [0.25, 1.5] mm Try 0.25 0.5 0.75 1.0
 	aperture = 2.5e-3; # Should be 2.5e-3
 	za = 41.5e-2;
 	zd = 92e-3;
@@ -171,7 +171,7 @@ begin
 	]);
 	legB3 = OpticalSystem([
 		CircularAperture(aperture), 
-		SpiralPhaseElement(-ℓ),
+		SpiralPhaseElement(ℓ),
 		FreeSpace(zd),	
 		ConjugateInverter(),
 	]);
@@ -179,7 +179,7 @@ begin
 	legC3 = OpticalSystem([
 	]);
 
-	n_realizations3 = 2000;
+	n_realizations3 = 100;
 
 	field31, field32, field33, points31, points32 = 
 		disk_schell_mixer(
@@ -191,7 +191,6 @@ begin
 			is_same_source=is_same_source3
 		);
 
-	
 end
 
 # ╔═╡ b485cacc-1d89-4831-8dcd-2b5e4b7d4f5f
@@ -445,8 +444,8 @@ begin
 
 	f = 10e-2;
 
-	p11 = 0; l11 = 1;
-	p12 = 0; l12 = 1;
+	p11 = 0; l11 = 2;
+	p12 = 0; l12 = 2;
 	beamtype1 = "LG";
 	if beamtype1 == "LG"
 		beam1 = LGBeam(w0, λ, p11, l11);
@@ -476,6 +475,7 @@ begin
 			n_realizations=n_realizations1,
 			is_same_source=is_same_source1
 		);
+
 	
 end
 
@@ -502,7 +502,7 @@ end
 
 # ╔═╡ 441d8969-14fa-4a9f-880c-d0cf1c409df5
 begin
-	is_same_source2 = false;
+	is_same_source2 = true;
 	grid2 = TransverseGrid(range(-400e-6, 400e-6, 256));
 
 	λ2 = 632.8e-9;
@@ -512,7 +512,7 @@ begin
 	f2 = 10e-2;
 
 	p21 = 1; l21 = 1;
-	p22 = 1; l22 = 1;
+	p22 = 1; l22 = 2;
 	beamtype2 = "LG";
 	if beamtype2 == "LG"
 		beam21 = LGBeam(w02, λ2, p21, l21);
@@ -540,6 +540,7 @@ begin
 			n_realizations=n_realizations2,
 			is_same_source=is_same_source2
 		);
+
 	
 end
 
@@ -683,7 +684,7 @@ begin
 		units=:mm,
 		beam_centers=points31,
 		source_radius=source_radius3,
-		save_path="thesis_notebook_figures/disk-source-1.pdf"
+		save_path="thesis_notebook_figures/disk-source/1.0-a.pdf"
 	)
 end
 
@@ -695,7 +696,7 @@ begin
 		units=:mm,
 		#beam_centers=points32,
 		#source_radius=source_radius3,
-		save_path="thesis_notebook_figures/disk-source-2.pdf"
+		save_path="thesis_notebook_figures/disk-source/1.0-b.pdf"
 	)
 end
 
@@ -706,7 +707,7 @@ begin
 		plottype=:abs, 
 		units=:mm,
 		#source_radius=ring_size, 
-		save_path="thesis_notebook_figures/disk-source-3.pdf"
+		save_path="thesis_notebook_figures/disk-source/1.0-c.pdf"
 	)
 end
 
@@ -759,13 +760,16 @@ function my_phase(field; source_radius=missing, plottype=missing, units=missing,
 	fig
 end
 
+# ╔═╡ bcaed74c-ad27-4804-80d1-1c25ab1eeee7
+my_phase(field3, units=:mm)
+
 # ╔═╡ 9f0f09d3-5171-4d31-a940-0027c91706c2
 begin
 	my_phase(
 		field33, 
 		units=:mm,
 		#source_radius=ring_size, 
-		save_path="thesis_notebook_figures/disk-source-phase.pdf"
+		save_path="thesis_notebook_figures/disk-source/1.0-c-phase.pdf"
 	)
 end
 
@@ -788,7 +792,7 @@ Revise = "~3.14.2"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.6"
+julia_version = "1.12.5"
 manifest_format = "2.0"
 project_hash = "ced13e6d4dcf4dcdbcd65ecd45d2dd56f10040f8"
 
@@ -2482,6 +2486,7 @@ version = "4.1.0+0"
 # ╟─6ca2e49b-4ce5-49d8-87be-80c5146929a7
 # ╟─6cfae794-9df0-40da-821e-110d6204feeb
 # ╟─c54e954b-e49e-45a1-b635-8cb5067d8c43
+# ╟─bcaed74c-ad27-4804-80d1-1c25ab1eeee7
 # ╟─c4b142e0-983d-4c0f-bb48-b6f7f7306621
 # ╠═441d8969-14fa-4a9f-880c-d0cf1c409df5
 # ╟─938f8d5b-46d6-4daa-bb5a-75806745863a
@@ -2491,10 +2496,10 @@ version = "4.1.0+0"
 # ╠═ffac01b2-cfc5-4342-a52a-6a2e0a4d56e4
 # ╠═b485cacc-1d89-4831-8dcd-2b5e4b7d4f5f
 # ╠═231d6155-853d-429d-9622-77ebb58378ee
-# ╟─11f8414f-e6ad-4f01-996d-3564a395c287
-# ╟─e1494177-7867-4aee-815c-52e1753c1f4c
+# ╠═11f8414f-e6ad-4f01-996d-3564a395c287
+# ╠═e1494177-7867-4aee-815c-52e1753c1f4c
 # ╠═eb9f3385-db09-4e77-9216-83641b65657d
-# ╟─9f0f09d3-5171-4d31-a940-0027c91706c2
+# ╠═9f0f09d3-5171-4d31-a940-0027c91706c2
 # ╟─a8ec16ee-52aa-42e5-b41f-d4c5a132151c
 # ╟─43af5aee-72d6-4724-a8a5-22a066645374
 # ╟─5797c99c-5b7c-46b8-9534-d918332df2cf
@@ -2505,7 +2510,7 @@ version = "4.1.0+0"
 # ╟─7769d4b7-3b39-4abe-858b-4686dee197d2
 # ╟─e7bf0e8c-3843-4eb9-8d85-817ba2c300bc
 # ╟─b5e06f26-9c7b-4529-aeb6-b718dfd346eb
-# ╟─16f685d3-c245-4473-b5c5-5fef7069ef5d
+# ╠═16f685d3-c245-4473-b5c5-5fef7069ef5d
 # ╟─5ea3e491-d8f3-4d60-93c3-9d3d509108a0
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
