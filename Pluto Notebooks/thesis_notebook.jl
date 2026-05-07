@@ -156,7 +156,7 @@ begin
 	source_radius3 = 0.5e-3; # [0.25, 1.5] mm Try 0.25 0.5 0.75 1.0
 	aperture = 2.5e-3; # Should be 2.5e-3
 	za = 41.5e-2;
-	zd = 92e-3;
+	zd = 10*92e-3;
 
 	Lc = 0.64*λ3*za/source_radius3;
 	k = 2π/λ3;
@@ -481,8 +481,8 @@ end
 
 # ╔═╡ 5797c99c-5b7c-46b8-9534-d918332df2cf
 begin
-	mygrid = TransverseGrid(range(-10e-2, 10e-2, 256))
-	beam = LGBeam(1e-2, λ, 0, 0, z0=1e1)
+	mygrid = TransverseGrid(range(-1e-2, 1e-2, 1024))
+	beam = LGBeam(1e-2, λ, 0, 0, z0=0e1)
 	field = evaluate(mygrid, beam)
 	fieldplot(field)
 	
@@ -491,12 +491,14 @@ end
 
 # ╔═╡ 07717101-18bc-43dc-8b26-2907a5817d06
 begin
-	fieldaa = apply(CircularAperture(3000e-2), field)
-	fieldab = apply(ThinLens(5000e-2, 4e-2), fieldaa)
-	fieldac = apply(FreeSpace(5000e-2), fieldab)
+	fieldaa = apply(CircularAperture(30000e-2), field)
+	fieldab = apply(ThinLens(5000e-2, 10e-2), fieldaa)
+	#fieldac = apply(FreeSpace(5000e-2), fieldab)
+	fieldac = propagate_dsf(fieldab, 4000e-2, 1)
 	fieldf = apply(FourierLens(1e-2, 1e-2), field)
 	fieldplot(fieldac)
-
+	
+	
 	
 end
 
@@ -706,7 +708,7 @@ begin
 		field33, 
 		plottype=:abs, 
 		units=:mm,
-		#source_radius=ring_size, 
+		source_radius=ring_size, 
 		save_path="thesis_notebook_figures/disk-source/1.0-c.pdf"
 	)
 end
@@ -792,7 +794,7 @@ Revise = "~3.14.2"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.5"
+julia_version = "1.12.6"
 manifest_format = "2.0"
 project_hash = "ced13e6d4dcf4dcdbcd65ecd45d2dd56f10040f8"
 
@@ -2502,8 +2504,8 @@ version = "4.1.0+0"
 # ╠═9f0f09d3-5171-4d31-a940-0027c91706c2
 # ╟─a8ec16ee-52aa-42e5-b41f-d4c5a132151c
 # ╟─43af5aee-72d6-4724-a8a5-22a066645374
-# ╟─5797c99c-5b7c-46b8-9534-d918332df2cf
-# ╟─07717101-18bc-43dc-8b26-2907a5817d06
+# ╠═5797c99c-5b7c-46b8-9534-d918332df2cf
+# ╠═07717101-18bc-43dc-8b26-2907a5817d06
 # ╟─2cb543c9-a286-438b-8478-9e6d66976865
 # ╟─2b8fa9f3-fdec-43d5-9c45-297020508eae
 # ╟─eeaa0141-19a6-4d7a-a346-8b9a661f86ad
