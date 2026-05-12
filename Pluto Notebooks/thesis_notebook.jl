@@ -44,6 +44,13 @@ md"""
 Numerical reproduction of the paper "Spatial Correlation Singularity of a Vortex Field" by Palacios et al. (2004).
 """
 
+# ╔═╡ d17d2238-299c-4fa1-838c-e2074f0bd0b0
+md"""
+### Disk source with SLM mixer using optical phase conjugator (OPC)
+
+Numerical reproduction of the paper "Spatial Correlation Singularity of a Vortex Field" by Palacios et al. (2004).
+"""
+
 # ╔═╡ a8ec16ee-52aa-42e5-b41f-d4c5a132151c
 md"""
 ## Tests
@@ -150,13 +157,15 @@ begin
 	is_same_source3 = true;
 	
 	grid3 = TransverseGrid(range(-4e-3, 4e-3, 256));
+	grid3_out = TransverseGrid(range(-50e-3, 50e-3, 256));
 	
 	λ3 = 800e-9;
 	ℓ = -1;
-	source_radius3 = 0.5e-3; # [0.25, 1.5] mm Try 0.25 0.5 0.75 1.0
+	sr = 1.0; # [0.25, 1.5] mm Try 0.25 0.5 0.75 1.0
+	source_radius3 = sr * 1e-3; 
 	aperture = 2.5e-3; # Should be 2.5e-3
 	za = 41.5e-2;
-	zd = 10*92e-3;
+	zd = 100*92e-3;
 
 	Lc = 0.64*λ3*za/source_radius3;
 	k = 2π/λ3;
@@ -167,19 +176,20 @@ begin
 	legA3 = OpticalSystem([
 		CircularAperture(aperture), 
 		SpiralPhaseElement(ℓ),
-		FreeSpace(zd),
+		FreeSpace(zd, grid3_out),
 	]);
 	legB3 = OpticalSystem([
 		CircularAperture(aperture), 
-		SpiralPhaseElement(ℓ),
-		FreeSpace(zd),	
-		ConjugateInverter(),
+		SpiralPhaseElement(-ℓ), # The SLM is doing the conjugate
+		Rotate180(),
+		FreeSpace(zd, grid3_out),	
+		#ConjugateInverter(),
 	]);
 	mixer3 = SFGCrystal();
 	legC3 = OpticalSystem([
 	]);
 
-	n_realizations3 = 100;
+	n_realizations3 = 2000;
 
 	field31, field32, field33, points31, points32 = 
 		disk_schell_mixer(
@@ -190,7 +200,6 @@ begin
 			n_realizations=n_realizations3,
 			is_same_source=is_same_source3
 		);
-
 end
 
 # ╔═╡ b485cacc-1d89-4831-8dcd-2b5e4b7d4f5f
@@ -213,6 +222,58 @@ begin
 
 	
 	
+end
+
+# ╔═╡ 5b8c9a2d-e5e2-401a-ac85-79aa2cec0de5
+begin
+	is_same_source4 = true;
+	
+	grid4 = TransverseGrid(range(-4e-3, 4e-3, 256));
+	grid4_out = TransverseGrid(range(-50e-3, 50e-3, 256));
+	
+	λ4 = 800e-9;
+	ℓ4 = -1;
+	sr4 = 0.65; # [0.25, 1.5] mm Try 0.25 0.5 0.75 1.0
+	source_radius4 = sr4 * 1e-3; 
+	aperture4 = 2.5e-3; #
+	za4 = 41.5e-2;
+	zd4 = 100*92e-3; #Augemented to see the ring on a bigger scale
+
+	Lc4 = 0.64*λ4*za4/source_radius4;
+	k4 = 2π/λ4;
+	ring_size4 = sqrt(2π) * (zd4/(k4*Lc4));
+	
+	source4 = DiskSchellModel(source_radius4, λ4); 
+
+	legA4 = OpticalSystem([
+		ThinLens(za4, aperture4),
+		CircularAperture(aperture4), 
+		SpiralPhaseElement(ℓ4),
+		FreeSpace(zd4, grid4_out),
+	]);
+	legB4 = OpticalSystem([
+		ThinLens(za4, aperture4),
+		CircularAperture(aperture4), 
+		SpiralPhaseElement(ℓ4), # The SLM is not doing the conjugate
+		FreeSpace(zd4, grid4_out),	
+		Rotate180(),
+		Conjugate(),
+	]);
+	mixer4 = SFGCrystal();
+	legC4 = OpticalSystem([
+	]);
+
+	n_realizations4 = 2000;
+
+	field41, field42, field43, points41, points42 = 
+		disk_schell_mixer(
+			grid4, 
+			source4, 
+			legA4, legB4, legC4, za4,
+			mixer4,
+			n_realizations=n_realizations4,
+			is_same_source=is_same_source4
+		);
 end
 
 # ╔═╡ 7769d4b7-3b39-4abe-858b-4686dee197d2
@@ -444,15 +505,15 @@ begin
 
 	f = 10e-2;
 
-	p11 = 0; l11 = 2;
-	p12 = 0; l12 = 2;
+	p11 = 0; l11 = 1;
+	p12 = 0; l12 = 1;
 	beamtype1 = "LG";
 	if beamtype1 == "LG"
-		beam1 = LGBeam(w0, λ, p11, l11);
-		beam2 = LGBeam(w0, λ, p12, l12);
+		beam1 = LGBeam(w0, λ, p11, l11, z0=1e-2);
+		beam2 = LGBeam(w0, λ, p12, l12, z0=1e-2);
 	elseif beamtype1 == "HG"
-		beam1 = HGBeam(w0, λ, p11, l11);
-		beam2 = HGBeam(w0, λ, p12, l12);
+		beam1 = HGBeam(w0, λ, p11, l11, z0=1e-2);
+		beam2 = HGBeam(w0, λ, p12, l12, z0=1e-2);
 	end
 
 	legA = OpticalSystem([]);
@@ -481,8 +542,8 @@ end
 
 # ╔═╡ 5797c99c-5b7c-46b8-9534-d918332df2cf
 begin
-	mygrid = TransverseGrid(range(-1e-2, 1e-2, 1024))
-	beam = LGBeam(1e-2, λ, 0, 0, z0=0e1)
+	mygrid = TransverseGrid(range(-2e-3, 2e-3, 1024))
+	beam = LGBeam(1e-3, λ, 0, 0, z0=0e1)
 	field = evaluate(mygrid, beam)
 	fieldplot(field)
 	
@@ -492,9 +553,9 @@ end
 # ╔═╡ 07717101-18bc-43dc-8b26-2907a5817d06
 begin
 	fieldaa = apply(CircularAperture(30000e-2), field)
-	fieldab = apply(ThinLens(5000e-2, 10e-2), fieldaa)
+	fieldab = apply(ThinLens(100e-3, 2e-3), fieldaa)
 	#fieldac = apply(FreeSpace(5000e-2), fieldab)
-	fieldac = propagate_dsf(fieldab, 4000e-2, 1)
+	fieldac = propagate_dsf(fieldab, 100e-3, 1)
 	fieldf = apply(FourierLens(1e-2, 1e-2), field)
 	fieldplot(fieldac)
 	
@@ -504,7 +565,7 @@ end
 
 # ╔═╡ 441d8969-14fa-4a9f-880c-d0cf1c409df5
 begin
-	is_same_source2 = true;
+	is_same_source2 = false;
 	grid2 = TransverseGrid(range(-400e-6, 400e-6, 256));
 
 	λ2 = 632.8e-9;
@@ -513,8 +574,8 @@ begin
 
 	f2 = 10e-2;
 
-	p21 = 1; l21 = 1;
-	p22 = 1; l22 = 2;
+	p21 = 0; l21 = 0;
+	p22 = 1; l22 = 0;
 	beamtype2 = "LG";
 	if beamtype2 == "LG"
 		beam21 = LGBeam(w02, λ2, p21, l21);
@@ -530,7 +591,7 @@ begin
 
 	mixer2 = SFGCrystal();
 
-	n_realizations2 = 100;
+	n_realizations2 = 2000;
 
 	field21, field22, field23, points21, points22 = 
 		beam_wander_mixer(
@@ -650,7 +711,7 @@ begin
 		units=:mm,
 		#beam_centers=points21,
 		#source_radius=source_radius2,
-		save_path="thesis_notebook_figures/$beamtype2$p21$l21-$beamtype2$p22$l22/mode-detection-1.pdf"
+		#save_path="thesis_notebook_figures/$beamtype2$p21$l21-$beamtype2$p22$l22/mode-detection-1.pdf"
 	)
 end
 
@@ -662,7 +723,7 @@ begin
 		units=:mm,
 		#beam_centers=points22,
 		#source_radius=source_radius2,
-		save_path="thesis_notebook_figures/$beamtype2$p21$l21-$beamtype2$p22$l22/mode-detection-2.pdf"
+		#save_path="thesis_notebook_figures/$beamtype2$p21$l21-$beamtype2$p22$l22/mode-detection-2.pdf"
 	)
 end
 
@@ -674,7 +735,7 @@ begin
 		units=:mm,
 		#beam_centers=points22,
 		#source_radius=source_radius,
-		save_path="thesis_notebook_figures/$beamtype2$p21$l21-$beamtype2$p22$l22/mode-detection-3.pdf"
+		save_path="thesis_notebook_figures/mode-detection/$beamtype2$p21$l21-$beamtype2$p22$l22-3.pdf"
 	)
 end
 
@@ -686,7 +747,7 @@ begin
 		units=:mm,
 		beam_centers=points31,
 		source_radius=source_radius3,
-		save_path="thesis_notebook_figures/disk-source/1.0-a.pdf"
+		save_path="thesis_notebook_figures/disk-source/$sr-a.pdf"
 	)
 end
 
@@ -698,7 +759,7 @@ begin
 		units=:mm,
 		#beam_centers=points32,
 		#source_radius=source_radius3,
-		save_path="thesis_notebook_figures/disk-source/1.0-b.pdf"
+		save_path="thesis_notebook_figures/disk-source/$sr-b.pdf"
 	)
 end
 
@@ -709,7 +770,18 @@ begin
 		plottype=:abs, 
 		units=:mm,
 		source_radius=ring_size, 
-		save_path="thesis_notebook_figures/disk-source/1.0-c.pdf"
+		save_path="thesis_notebook_figures/disk-source/$sr-c.pdf"
+	)
+end
+
+# ╔═╡ a0765b70-b95e-437e-810f-399d794fe1e3
+begin
+	my_fig(
+		field43, 
+		plottype=:intensity, 
+		units=:mm,
+		source_radius=ring_size4, 
+		save_path="thesis_notebook_figures/disk-source-OPC/$sr4-c.pdf"
 	)
 end
 
@@ -763,7 +835,11 @@ function my_phase(field; source_radius=missing, plottype=missing, units=missing,
 end
 
 # ╔═╡ bcaed74c-ad27-4804-80d1-1c25ab1eeee7
-my_phase(field3, units=:mm)
+my_phase(
+	field3, 
+	units=:mm,
+	save_path="thesis_notebook_figures/$beamtype1$p11$l11-$beamtype1$p12$l12/beam-wander-3-phase.pdf"
+)
 
 # ╔═╡ 9f0f09d3-5171-4d31-a940-0027c91706c2
 begin
@@ -771,7 +847,17 @@ begin
 		field33, 
 		units=:mm,
 		#source_radius=ring_size, 
-		save_path="thesis_notebook_figures/disk-source/1.0-c-phase.pdf"
+		save_path="thesis_notebook_figures/disk-source/$sr-c-phase.pdf"
+	)
+end
+
+# ╔═╡ c0ae44e4-90f0-4a9a-ab11-858435e327f8
+begin
+	my_phase(
+		field43, 
+		units=:mm,
+		#source_radius=ring_size, 
+		save_path="thesis_notebook_figures/disk-source-OPC/$sr4-c-phase.pdf"
 	)
 end
 
@@ -2488,31 +2574,35 @@ version = "4.1.0+0"
 # ╟─6ca2e49b-4ce5-49d8-87be-80c5146929a7
 # ╟─6cfae794-9df0-40da-821e-110d6204feeb
 # ╟─c54e954b-e49e-45a1-b635-8cb5067d8c43
-# ╟─bcaed74c-ad27-4804-80d1-1c25ab1eeee7
+# ╠═bcaed74c-ad27-4804-80d1-1c25ab1eeee7
 # ╟─c4b142e0-983d-4c0f-bb48-b6f7f7306621
 # ╠═441d8969-14fa-4a9f-880c-d0cf1c409df5
 # ╟─938f8d5b-46d6-4daa-bb5a-75806745863a
 # ╟─ffe96989-1af9-45b0-b6ae-103a08f3c977
-# ╟─3ba9fb94-06a6-4b9d-b745-1eb6310252bf
+# ╠═3ba9fb94-06a6-4b9d-b745-1eb6310252bf
 # ╟─38c42216-600b-4383-ae35-ba107d5b2ea8
 # ╠═ffac01b2-cfc5-4342-a52a-6a2e0a4d56e4
 # ╠═b485cacc-1d89-4831-8dcd-2b5e4b7d4f5f
 # ╠═231d6155-853d-429d-9622-77ebb58378ee
-# ╠═11f8414f-e6ad-4f01-996d-3564a395c287
-# ╠═e1494177-7867-4aee-815c-52e1753c1f4c
-# ╠═eb9f3385-db09-4e77-9216-83641b65657d
+# ╟─11f8414f-e6ad-4f01-996d-3564a395c287
+# ╟─e1494177-7867-4aee-815c-52e1753c1f4c
+# ╟─eb9f3385-db09-4e77-9216-83641b65657d
 # ╠═9f0f09d3-5171-4d31-a940-0027c91706c2
+# ╟─d17d2238-299c-4fa1-838c-e2074f0bd0b0
+# ╠═5b8c9a2d-e5e2-401a-ac85-79aa2cec0de5
+# ╠═a0765b70-b95e-437e-810f-399d794fe1e3
+# ╠═c0ae44e4-90f0-4a9a-ab11-858435e327f8
 # ╟─a8ec16ee-52aa-42e5-b41f-d4c5a132151c
 # ╟─43af5aee-72d6-4724-a8a5-22a066645374
 # ╠═5797c99c-5b7c-46b8-9534-d918332df2cf
 # ╠═07717101-18bc-43dc-8b26-2907a5817d06
 # ╟─2cb543c9-a286-438b-8478-9e6d66976865
 # ╟─2b8fa9f3-fdec-43d5-9c45-297020508eae
-# ╟─eeaa0141-19a6-4d7a-a346-8b9a661f86ad
+# ╠═eeaa0141-19a6-4d7a-a346-8b9a661f86ad
 # ╟─7769d4b7-3b39-4abe-858b-4686dee197d2
 # ╟─e7bf0e8c-3843-4eb9-8d85-817ba2c300bc
 # ╟─b5e06f26-9c7b-4529-aeb6-b718dfd346eb
 # ╠═16f685d3-c245-4473-b5c5-5fef7069ef5d
-# ╟─5ea3e491-d8f3-4d60-93c3-9d3d509108a0
+# ╠═5ea3e491-d8f3-4d60-93c3-9d3d509108a0
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
